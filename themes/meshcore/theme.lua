@@ -10,6 +10,8 @@ return {
             grey     = "#1c3242",  -- inactive traces
             accent   = "#19c3b1",  -- mesh teal
             btn_text = "#eafffb",
+            highlight   = "#2ee6d0",   -- bright mesh teal (strong emphasized text)
+            accent_text = "#ffb454",   -- waypoint amber (secondary emphasized text)
             dark     = true,
         }
 
