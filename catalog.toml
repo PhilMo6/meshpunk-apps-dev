@@ -211,23 +211,23 @@ files = [
 id = "Web"
 name = "Web"
 author = "PhilMo6"
-version = "1.0.1"
+version = "1.0.2"
 type = "lua"
 description = "Web browser — pages as clean text, forms, images"
 category = "Network"
 files = ["readme.lua", "main.lua", "http.lua", "html.lua"]
-min_fw = 14
+min_fw = 15
 
 [[apps]]
 id = "IRC"
 name = "IRC"
 author = "PhilMo6"
-version = "1.0.0"
+version = "1.0.1"
 type = "lua"
 description = "IRC client — TLS, several networks, runs in the background"
 category = "Network"
 files = ["readme.lua", "main.lua", "core.lua", "parse.lua", "cmds.lua", "cfg.lua"]
-min_fw = 14
+min_fw = 15
 
 # ── Preinstalled apps (tracked for OTA updates) ──────────────────────────────
 
@@ -245,12 +245,12 @@ files = ["readme.lua", "main.lua"]
 id = "Map"
 name = "Map"
 author = "PhilMo6"
-version = "1.1.0"
+version = "1.1.1"
 type = "lua"
 locked = true
 description = "Offline tile map with mesh overlays"
 files = ["readme.lua", "tilesource.lua", "main.lua"]
-min_fw = 14
+min_fw = 15
 
 [[apps]]
 id = "meshcore_messenger"

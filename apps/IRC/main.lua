@@ -24,17 +24,19 @@ local apps = require("lib/apps")
 local nav = require("lib/nav")
 local utils = require("lib/utils")
 local clipboard = require("lib/clipboard")
+local fileman = require("lib/fileman")
 
 local app_dir = ...
 
+-- fileman.dofile runs the module from whichever drive the app was installed
+-- to, streaming it in either case. Reading the source ourselves would put a
+-- whole module (core.lua is ~78KB) in one contiguous internal-RAM block,
+-- which fails under heap pressure as a bogus syntax error rather than an
+-- out-of-memory one.
 local function loadmod(name)
-    local f = io.open(app_dir .. "/" .. name .. ".lua", "r")
-    if not f then error("IRC: missing " .. name .. ".lua") end
-    local src = f:read("*a")
-    f:close()
-    local chunk, err = load(src, "@" .. name .. ".lua")
-    if not chunk then error(err) end
-    return chunk()
+    local mod, err = fileman.dofile(app_dir .. "/" .. name .. ".lua")
+    if not mod then error("IRC: " .. name .. ".lua: " .. tostring(err)) end
+    return mod
 end
 
 -- ── engine rendezvous ────────────────────────────────────────────────────────
