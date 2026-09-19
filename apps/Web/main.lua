@@ -57,10 +57,22 @@ local wifi = require("lib/wifi")
 local fileman = require("lib/fileman")
 local imgview = require("lib/imgview")
 
--- Sibling chunks, Map-style: strip the drive prefix for loadfile, and the
--- extra parens truncate gsub's count return.
-local http = assert(loadfile(((app_dir .. "/http.lua"):gsub("^[Ll]:", ""))))()
-local html = assert(loadfile(((app_dir .. "/html.lua"):gsub("^[Ll]:", ""))))()
+-- Sibling chunks. `app_dir` carries the drive ("L:/lua/apps/Web" when the
+-- app sits on internal flash, "S:/meshpunk/apps/<category>/Web" on the card)
+-- and BOTH loaders want that prefix stripped — but loadfile reads LittleFS
+-- only, so an SD copy has to come through _dofile_sd, which streams the file
+-- and returns what the chunk returned. The extra parens around gsub truncate
+-- its count return, which would otherwise land in the next parameter.
+local function load_sibling(name)
+    local bare = ((app_dir .. "/" .. name):gsub("^%a:", ""))
+    if app_dir:sub(1, 2):upper() == "S:" then
+        return assert(_dofile_sd(bare, app_dir))
+    end
+    return assert(loadfile(bare))(app_dir)
+end
+
+local http = load_sibling("http.lua")
+local html = load_sibling("html.lua")
 
 local W, H = lvgl.HOR_RES(), lvgl.VER_RES()
 local pal = theme.palette()
