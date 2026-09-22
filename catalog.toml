@@ -31,7 +31,7 @@
 
 [meta]
 version = 1
-updated = "2026-09-18"
+updated = "2026-09-21"
 
 # ── Download-only apps (not shipped in firmware) ─────────────────────────────
 
@@ -404,7 +404,6 @@ version = "1.0.1"
 type = "lua"
 description = "Share the SD card with a PC as a USB thumb drive"
 category = "Tools"
-# Needs the _usbdrive_* bindings (firmware API level 3).
 min_fw = 3
 files = ["readme.lua", "main.lua"]
 
@@ -418,22 +417,19 @@ description = "Device settings"
 locked = true
 category = "Settings"
 files = ["main.lua"]
-# 1.1.0 adds the "Legacy keyboard" toggle — needs the _kb_legacy_get/_set
-# bindings (firmware API level 7).
 min_fw = 7
 
 [[apps]]
 id = "Firmware"
 name = "Firmware"
 author = "PhilMo6"
-version = "1.0.1"
+version = "1.1.0"
 type = "lua"
 description = "Firmware updates over WiFi or from the SD card"
 locked = true
 category = "Settings"
 files = ["readme.lua", "main.lua"]
-# The whole page is the _ota_* bindings (firmware API level 13).
-min_fw = 13
+min_fw = 15
 
 [[apps]]
 id = "Power"
