@@ -44,6 +44,12 @@ local selected_cart = 1
 local selected_cart_name = nil
 local scr = nil
 
+-- The BBS browser needs firmware API 15: BBS listings are sent chunked, and
+-- _wifi_download_file decodes chunked responses from that level. On older
+-- firmware the main screen has no BBS button.
+local HAS_BBS = (tonumber(_FW_API) or 0) >= 15
+local bbs_view = nil   -- bbs_view.lua, loaded when the BBS first opens
+
 -- Stable, manager-registered root. Every view is a single navigable scope: one
 -- flex container whose focusable children are ALL direct children, so gridnav's
 -- trackball/WASD navigation reaches every one of them.
@@ -74,6 +80,12 @@ local function scan_dir_for_carts(dir_path)
             }
         end
     end
+end
+
+local function sort_carts()
+    table.sort(found_carts, function(a, b)
+        return a.name:lower() < b.name:lower()
+    end)
 end
 
 -- ============================================================
@@ -220,6 +232,95 @@ kb = keybind.new{
 }
 
 -- ============================================================
+-- Launching, and the BBS browser
+-- ============================================================
+
+-- Launches cart cc = { name, path }.
+local function start_cart(cc)
+    local km = kb:keymap_string()
+    lvgl.Timer{
+        period = 50,
+        cb = function(t)
+            t:delete()
+            local vfs_cart = to_vfs_path(cc.path)
+            -- Deferred launch: the firmware tears Lua down, runs the cart,
+            -- then recreates Lua and returns to the launcher home. _launch_elf
+            -- only queues the request, so there's no result to handle here.
+            local args = { ELF_PATH, vfs_cart,
+                "-trkball", kb:trkball_string() }
+            -- Omitted when nothing is bound, so the firmware falls back
+            -- to passthrough instead of parsing an empty table.
+            if km then
+                args[#args + 1] = "-keymap"
+                args[#args + 1] = km
+            end
+            if _elf_touch_layout and pad then
+                local tl = pad:zones()
+                if tl then _elf_touch_layout(tl) end
+            end
+            _launch_elf(table.unpack(args))
+        end
+    }
+end
+
+-- Path of the listed cart called `name` (any letter case), or nil.
+local function find_cart(name)
+    local low = name:lower()
+    if not seen_lower[low] then return nil end
+    for _, cc in ipairs(found_carts) do
+        if cc.name:lower() == low then return cc.path end
+    end
+    return nil
+end
+
+-- Lists a cart the BBS saved, unless a cart of that name is already listed,
+-- and makes it the selected cart.
+local function add_cart(path, name)
+    local low = name:lower()
+    if not seen_lower[low] then
+        seen_lower[low] = true
+        found_carts[#found_carts + 1] = { name = name, path = path }
+        sort_carts()
+    end
+    for i, cc in ipairs(found_carts) do
+        if cc.name:lower() == low then
+            selected_cart = i
+            break
+        end
+    end
+    save_config()
+end
+
+local function open_bbs()
+    if not bbs_view then
+        local bbs = assert(fileman.dofile(app_dir .. "/bbs.lua"))
+        bbs_view = assert(fileman.dofile(app_dir .. "/bbs_view.lua", {
+            bbs           = bbs,
+            root          = root,
+            show_screen   = show_screen,
+            heading       = heading,
+            font          = FONT,
+            accent        = ACCENT,
+            find_cart     = find_cart,
+            on_downloaded = add_cart,
+            play          = function(path, name)
+                add_cart(path, name)
+                start_cart({ name = name, path = path })
+            end,
+            on_back       = function() create_main_screen() end,
+        }))
+        -- go_home (Quit, the home chord) runs this before tearing the app
+        -- down. The root is hidden first, so nothing draws the cart image
+        -- file the BBS deletes.
+        apps.set_on_close(function()
+            root:add_flag(lvgl.FLAG.HIDDEN)
+            bbs_view.release()
+        end)
+    end
+    bbs_view.open()
+end
+
+-- ============================================================
 -- Main screen
 -- ============================================================
 create_main_screen = function()
@@ -279,7 +380,8 @@ create_main_screen = function()
         local has_carts = #found_carts > 0
         local status = c:Label{
             text = has_carts and "Ready to play"
-                   or "Place .p8 carts in S:/p8carts/",
+                   or (HAS_BBS and "No carts yet - get some from the BBS"
+                       or "Place .p8 carts in S:/p8carts/"),
             text_font = FONT,
             text_color = has_carts and "#888888" or "#FF6666",
             w = lvgl.PCT(100), h = lvgl.SIZE_CONTENT,
@@ -293,32 +395,14 @@ create_main_screen = function()
                 return
             end
             status:set{ text = "Loading..." }
-            local km = kb:keymap_string()
-            lvgl.Timer{
-                period = 50,
-                cb = function(t)
-                    t:delete()
-                    local cc = found_carts[selected_cart]
-                    local vfs_cart = to_vfs_path(cc.path)
-                    -- Deferred launch: the firmware tears Lua down, runs the cart,
-                    -- then recreates Lua and returns to the launcher home. _launch_elf
-                    -- only queues the request, so there's no result to handle here.
-                    local args = { ELF_PATH, vfs_cart,
-                        "-trkball", kb:trkball_string() }
-                    -- Omitted when nothing is bound, so the firmware falls back
-                    -- to passthrough instead of parsing an empty table.
-                    if km then
-                        args[#args + 1] = "-keymap"
-                        args[#args + 1] = km
-                    end
-                    if _elf_touch_layout and pad then
-                        local tl = pad:zones()
-                        if tl then _elf_touch_layout(tl) end
-                    end
-                    _launch_elf(table.unpack(args))
-                end
-            }
+            start_cart(found_carts[selected_cart])
         end)
+
+        if HAS_BBS then
+            local bbsBtn = c:Button{ w = lvgl.PCT(48), h = 34 }
+            bbsBtn:Label{ text = "BBS", align = lvgl.ALIGN.CENTER }
+            bbsBtn:onClicked(function() open_bbs() end)
+        end
 
         local ctrlBtn = c:Button{ w = lvgl.PCT(48), h = 34 }
         ctrlBtn:Label{ text = "Controls", align = lvgl.ALIGN.CENTER }
@@ -448,9 +532,7 @@ return function()
     end
 
     -- Final phase: sort carts, load config, show UI
-    table.sort(found_carts, function(a, b)
-        return a.name:lower() < b.name:lower()
-    end)
+    sort_carts()
     load_config()
     -- Restore cart selection by name
     if selected_cart_name then

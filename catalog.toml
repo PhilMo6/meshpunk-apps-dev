@@ -117,12 +117,12 @@ files = ["readme.lua", "main.lua", "genesis.app.elf"]
 id = "PICO-8"
 name = "PICO-8"
 author = "PhilMo6"
-version = "1.2.0"
+version = "1.3.0"
 type = "elf"
-description = "PICO-8 fantasy console player"
+description = "PICO-8 fantasy console player with a BBS cart browser"
 category = "Games"
 min_fw = 8
-files = ["readme.lua", "main.lua", "pico8.app.elf"]
+files = ["readme.lua", "bbs.lua", "bbs_view.lua", "main.lua", "pico8.app.elf"]
 
 [[apps]]
 id = "Dos"
