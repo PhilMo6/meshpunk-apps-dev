@@ -31,7 +31,7 @@
 
 [meta]
 version = 1
-updated = "2026-09-21"
+updated = "2026-09-26"
 
 # ── Download-only apps (not shipped in firmware) ─────────────────────────────
 
@@ -154,7 +154,7 @@ files = ["readme.lua", "main.lua"]
 id = "Gamepad"
 name = "Gamepad"
 author = "PhilMo6"
-version = "1.0.2"
+version = "1.0.3"
 type = "lua"
 description = "Map a USB gamepad to T-Deck controls for any game"
 category = "Games"
@@ -269,7 +269,7 @@ files = ["readme.lua", "main.lua"]
 id = "Read_Me"
 name = "Read Me"
 author = "PhilMo6"
-version = "1.0.5"
+version = "1.0.6"
 type = "lua"
 description = "On-device user guide"
 files = ["readme.lua", "main.lua"]
@@ -389,7 +389,7 @@ files = ["readme.lua", "main.lua"]
 id = "USB_Host"
 name = "USB Host"
 author = "PhilMo6"
-version = "1.1.1"
+version = "1.1.2"
 type = "lua"
 description = "USB host tools and driver manager"
 category = "Tools"
