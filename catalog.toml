@@ -31,7 +31,7 @@
 
 [meta]
 version = 1
-updated = "2026-09-26"
+updated = "2026-09-28"
 
 # ── Download-only apps (not shipped in firmware) ─────────────────────────────
 
@@ -139,6 +139,43 @@ files = [
   "dos.app.elf",
   "bios.bin",
   "vgabios.bin",
+]
+
+[[apps]]
+id = "Pyxel"
+name = "Pyxel"
+author = "PhilMo6"
+version = "1.0.0"
+type = "elf"
+description = "Pyxel retro game player with 7 example games; plays .pyxapp files and Python game folders"
+category = "Games"
+min_fw = 15
+files = [
+  "readme.lua",
+  "main.lua",
+  "pyxel.app.elf",
+  "pylib/__future__.py",
+  "pylib/abc.py",
+  "pylib/collections.py",
+  "pylib/copy.py",
+  "pylib/datetime.py",
+  "pylib/enum.py",
+  "pylib/itertools.py",
+  "pylib/json.py",
+  "pylib/os/__init__.py",
+  "pylib/os/path.py",
+  "pylib/pyxel.py",
+  "pylib/random.py",
+  "pylib/time.py",
+  "pylib/typing.py",
+  "games/LICENSE.txt",
+  "games/30sec_of_daylight.pyxapp",
+  "games/cursed_caverns.pyxapp",
+  "games/laser-jetman.pyxapp",
+  "games/mega_wing.pyxapp",
+  "games/megaball.pyxapp",
+  "games/space_rescue.pyxapp",
+  "games/vortexion.pyxapp",
 ]
 
 [[apps]]
@@ -256,7 +293,7 @@ min_fw = 15
 id = "meshcore_messenger"
 name = "Messenger"
 author = "PhilMo6"
-version = "1.1.3"
+version = "1.1.4"
 type = "lua"
 description = "MeshCore LoRa messenger"
 category = "Meshcore"
@@ -305,7 +342,7 @@ files = [
 id = "Scorched_Earth"
 name = "Scorched Earth"
 author = "PhilMo6"
-version = "1.1.0"
+version = "1.1.1"
 type = "lua"
 description = "Artillery duel classic"
 category = "Games"
@@ -315,7 +352,7 @@ files = ["readme.lua", "main.lua"]
 id = "Snake"
 name = "Snake"
 author = "PhilMo6"
-version = "1.1.0"
+version = "1.1.1"
 type = "lua"
 description = "Classic snake game"
 category = "Games"
@@ -335,7 +372,7 @@ files = ["main.lua"]
 id = "Files"
 name = "Files"
 author = "PhilMo6"
-version = "1.0.0"
+version = "1.0.1"
 type = "lua"
 locked = true
 description = "File manager for internal flash and SD"
@@ -346,11 +383,11 @@ files = ["main.lua"]
 id = "Images"
 name = "Images"
 author = "PhilMo6"
-version = "1.0.0"
+version = "1.1.0"
 type = "lua"
-description = "Image viewer with fit and 1:1 pan — PNG, JPEG and RGB565 .bin"
+description = "Image viewer with fit and 1:1 pan — PNG, JPEG, GIF and RGB565 .bin"
 category = "Tools"
-min_fw = 9
+min_fw = 14
 files = ["main.lua"]
 
 [[apps]]
@@ -411,7 +448,7 @@ files = ["readme.lua", "main.lua"]
 id = "Device"
 name = "Device"
 author = "PhilMo6"
-version = "1.2.1"
+version = "1.3.0"
 type = "lua"
 description = "Device settings"
 locked = true
@@ -435,7 +472,7 @@ min_fw = 15
 id = "Power"
 name = "Power"
 author = "PhilMo6"
-version = "1.0.0"
+version = "1.0.1"
 type = "lua"
 description = "Standby, power off, restart and auto-standby"
 locked = true
@@ -510,9 +547,20 @@ files = ["main.lua"]
 id = "Sound"
 name = "Sound"
 author = "PhilMo6"
-version = "1.0.1"
+version = "1.0.2"
 type = "lua"
 description = "Sound settings"
+locked = true
+category = "Settings"
+files = ["main.lua"]
+
+[[apps]]
+id = "Fonts"
+name = "Fonts"
+author = "PhilMo6"
+version = "1.0.0"
+type = "lua"
+description = "Default UI and text fonts"
 locked = true
 category = "Settings"
 files = ["main.lua"]
@@ -641,7 +689,7 @@ files = ["readme.lua", "main.lua"]
 id = "meshcore"
 name = "MeshCore"
 author = "PhilMo6"
-version = "1.0.1"
+version = "1.0.2"
 type = "elf"
 description = "MeshCore LoRa protocol + phone-app companion BLE protocol"
 min_fw = 12
