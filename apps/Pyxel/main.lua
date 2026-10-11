@@ -13,8 +13,8 @@ local H = lvgl.VER_RES()
 -- ============================================================
 -- Pyxel game launcher
 -- Games: .pyxapp / .zip archives and .py scripts in S:/pyxel, and folders
--- there holding a main.py; plus the example games in the app's games/
--- folder.
+-- there holding a main.py; the same in the game folder picked in Settings;
+-- plus the example games in the app's games/ folder.
 -- ============================================================
 
 local GAMES_DIR = "S:/pyxel"
@@ -52,6 +52,7 @@ local selected = 1
 local selected_name = nil
 local sound_on = true
 local match_on = true
+local extra_dir = nil -- game folder picked in Settings, e.g. "S:/games"
 local scr = nil
 
 -- ============================================================
@@ -70,12 +71,12 @@ local ACTIONS = {
     { id="down",  label="Down",   out=PAD.DOWN,  key1="s",     key2="TrkDn"  },
     { id="left",  label="Left",   out=PAD.LEFT,  key1="a",     key2="TrkLt"  },
     { id="right", label="Right",  out=PAD.RIGHT, key1="d",     key2="TrkRt"  },
-    { id="btn_a", label="A",      out=PAD.A,     key1="Space", key2="TrkClk" },
-    { id="btn_b", label="B",      out=PAD.B,     key1="x"                    },
-    { id="btn_x", label="X",      out=PAD.X,     key1="c"                    },
-    { id="btn_y", label="Y",      out=PAD.Y,     key1="v"                    },
-    { id="start", label="Start",  out=PAD.START, key1="p"                    },
-    { id="back",  label="Back",   out=PAD.BACK                               },
+    { id="btn_a", label="A",      out=PAD.A,     key1="m",     key2="TrkClk" },
+    { id="btn_b", label="B",      out=PAD.B,     key1="n"                    },
+    { id="btn_x", label="X",      out=PAD.X,     key1="k"                    },
+    { id="btn_y", label="Y",      out=PAD.Y,     key1="j"                    },
+    { id="start", label="Start",  out=PAD.START, key1="Enter"                },
+    { id="back",  label="Back",   out=PAD.BACK,  key1="BkSpc"                },
 }
 
 local pl_ok, padlayout = pcall(require, "lib/padlayout")
@@ -354,6 +355,8 @@ local function load_config()
         if m then match_on = (m == "1") end
         local g = line:match("^game=(.+)$")
         if g then selected_name = g end
+        local d = line:match("^folder=(.+)$")
+        if d then extra_dir = d end
     end
 end
 
@@ -363,6 +366,7 @@ local function save_config()
     kb:save_lines(f)
     f:write("sound=" .. (sound_on and "1" or "0") .. "\n")
     f:write("match=" .. (match_on and "1" or "0") .. "\n")
+    if extra_dir then f:write("folder=" .. extra_dir .. "\n") end
     if games[selected] then f:write("game=" .. games[selected].name .. "\n") end
     f:close()
 end
@@ -375,12 +379,13 @@ local root = apps.new_root({
 root:clear_flag(lvgl.FLAG.SCROLLABLE)
 
 -- Adds the games in dir, skipping names already listed: a game in /pyxel on
--- the SD card replaces the example game of the same name.
+-- the SD card replaces one of the same name in the Settings game folder, and
+-- either replaces the example game of that name.
 local function scan_dir(dir, listed)
     local entries = fileman.list(dir, { sizes = false }) or {}
     for _, e in ipairs(entries) do
         local low = e.name:lower()
-        local path = dir .. "/" .. e.name
+        local path = fileman.join(dir, e.name)
         local g
         if e.type == "file" and (low:match("%.pyxapp$") or low:match("%.zip$") or low:match("%.py$")) then
             g = { name = e.name, path = path }
@@ -395,10 +400,27 @@ local function scan_dir(dir, listed)
 end
 
 local function scan_games()
+    games = {}
     local listed = {}
     scan_dir(GAMES_DIR, listed)
+    if extra_dir then scan_dir(extra_dir, listed) end
     scan_dir(EXAMPLES_DIR, listed)
     table.sort(games, function(a, b) return a.name:lower() < b.name:lower() end)
+end
+
+-- Selects the game with this name, or the first game.
+local function select_game(name)
+    selected = 1
+    for i, g in ipairs(games) do
+        if g.name == name then selected = i; return end
+    end
+end
+
+-- Rescans after the game folder changes, keeping the selected game.
+local function rescan_games()
+    local name = games[selected] and games[selected].name
+    scan_games()
+    select_game(name)
 end
 
 local FONT = lvgl.BUILTIN_FONT.MONTSERRAT_12
@@ -421,6 +443,10 @@ local function show_screen(builder)
 end
 
 local create_main_screen
+local create_settings_screen
+
+-- Label + cycling value button, persisted (see lib/keybind).
+local setting_row = keybind.rows{ font = FONT, on_save = save_config }
 
 kb = keybind.new{
     actions     = ACTIONS,
@@ -518,12 +544,14 @@ local function create_help_screen()
         c:Label{
             text = "Seven example games come with the app.\n"
                 .. "Add more in /pyxel on the SD card:\n"
-                .. ".pyxapp files, or a folder with main.py.\n\n"
+                .. ".pyxapp files, or a folder with main.py.\n"
+                .. "Settings can add one more folder to\n"
+                .. "look for games in.\n\n"
                 .. "Default gamepad: W A S D or the trackball\n"
-                .. "move, Space or trackball click = A, X = B,\n"
-                .. "C = X, V = Y, P = Start. Change them in\n"
-                .. "Controls. Other keys, Enter included,\n"
-                .. "type straight into the game.\n\n"
+                .. "move, M or trackball click = A, N = B,\n"
+                .. "K = X, J = Y, Enter = Start, Backspace =\n"
+                .. "Back. Change them in Controls. Other\n"
+                .. "keys type straight into the game.\n\n"
                 .. "Match game (on by default) reads the\n"
                 .. "game's code at launch and points each\n"
                 .. "control at a key that game uses.\n\n"
@@ -532,9 +560,10 @@ local function create_help_screen()
                 .. "left mouse button.\n\n"
                 .. "Tap the y key (Quit in Controls) to leave\n"
                 .. "a game, or hold ALT + Backspace for 1.5 s.\n\n"
-                .. "The Sound button turns game sound on\n"
-                .. "or off. Games that save keep their\n"
-                .. "saves in /pyxel/save on the SD card.\n\n"
+                .. "Settings turns game sound and Match\n"
+                .. "game on or off. Games that save keep\n"
+                .. "their saves in /pyxel/save on the SD\n"
+                .. "card.\n\n"
                 .. "When a game asks you to type, ALT + Enter\n"
                 .. "switches the keys to typing. Press it\n"
                 .. "again to get the gamepad back.",
@@ -597,6 +626,88 @@ local function create_about_screen()
     end)
 end
 
+-- note: shown in red under the game folder row.
+create_settings_screen = function(note)
+    show_screen(function(c)
+        c:Label{
+            text = "SETTINGS",
+            text_font = FONT, text_color = ACCENT,
+            w = lvgl.PCT(100), h = lvgl.SIZE_CONTENT,
+        }
+
+        c:Label{
+            text = "Game folder",
+            text_font = FONT, text_color = "#CCCCCC",
+            w = lvgl.PCT(100), h = lvgl.SIZE_CONTENT,
+        }
+        local shown = extra_dir or "None"
+        if #shown > 26 then shown = "..." .. shown:sub(-23) end
+        local pick = c:Button{ w = extra_dir and lvgl.PCT(70) or lvgl.PCT(100), h = 28 }
+        pick:Label{ text = shown, text_font = FONT, align = lvgl.ALIGN.CENTER }
+        pick:onClicked(function()
+            require("lib/filepick").open(root, {
+                mode = "dir",
+                title = "Choose a game folder",
+                start = extra_dir or "S:/",
+                on_pick = function(path)
+                    -- The module opens files through /sd and /littlefs only.
+                    if path:sub(1, 2) == "U:" then
+                        create_settings_screen("Games can't run from a USB drive:\n"
+                            .. "pick a folder on the SD card or in\n"
+                            .. "internal storage.")
+                        return
+                    end
+                    extra_dir = path
+                    rescan_games()
+                    save_config()
+                    create_settings_screen()
+                end,
+            })
+        end)
+        if extra_dir then
+            local clear = c:Button{ w = lvgl.PCT(26), h = 28 }
+            clear:Label{ text = "Clear", text_font = FONT, align = lvgl.ALIGN.CENTER }
+            clear:onClicked(function()
+                extra_dir = nil
+                rescan_games()
+                save_config()
+                create_settings_screen()
+            end)
+        end
+        if note then
+            c:Label{
+                text = note,
+                text_font = FONT, text_color = "#FF6666",
+                w = lvgl.PCT(100), h = lvgl.SIZE_CONTENT,
+            }
+        end
+
+        setting_row(c, "Sound",
+            function() return sound_on and "< ON >" or "< OFF >" end,
+            function() sound_on = not sound_on end
+        )
+
+        setting_row(c, "Match game",
+            function() return match_on and "< ON >" or "< OFF >" end,
+            function() match_on = not match_on end
+        )
+
+        c:Label{
+            text = "Game folder: its games join the list,\n"
+                .. "as well as those in /pyxel on the SD card\n"
+                .. "Sound: game sound on or off\n"
+                .. "Match game: points each control at a\n"
+                .. "key the game reads (see Help)",
+            text_font = FONT, text_color = "#666666",
+            w = lvgl.PCT(100), h = lvgl.SIZE_CONTENT,
+        }
+
+        local back = c:Button{ w = lvgl.PCT(60), h = 28 }
+        back:Label{ text = "Back", text_font = FONT, align = lvgl.ALIGN.CENTER }
+        back:onClicked(function() create_main_screen() end)
+    end)
+end
+
 create_main_screen = function()
     show_screen(function(c)
         c:Label{
@@ -620,7 +731,8 @@ create_main_screen = function()
         end)
 
         local status = c:Label{
-            text = #games > 0 and "Ready to play" or "Put games in /pyxel on the SD card",
+            text = #games > 0 and "Ready to play"
+                or "Put games in /pyxel on the SD card, or pick a game folder in Settings",
             text_font = FONT,
             text_color = #games > 0 and "#888888" or "#FF6666",
             w = lvgl.PCT(100), h = lvgl.SIZE_CONTENT,
@@ -634,31 +746,13 @@ create_main_screen = function()
             start_game(games[selected])
         end)
 
-        local snd = c:Button{ w = lvgl.PCT(48), h = 34 }
-        local snd_label = snd:Label{
-            text = sound_on and "Sound: On" or "Sound: Off",
-            align = lvgl.ALIGN.CENTER,
-        }
-        snd:onClicked(function()
-            sound_on = not sound_on
-            snd_label:set{ text = sound_on and "Sound: On" or "Sound: Off" }
-            save_config()
-        end)
-
         local ctrl = c:Button{ w = lvgl.PCT(48), h = 34 }
         ctrl:Label{ text = "Controls", align = lvgl.ALIGN.CENTER }
         ctrl:onClicked(function() kb:open() end)
 
-        local match = c:Button{ w = lvgl.PCT(48), h = 34 }
-        local match_label = match:Label{
-            text = match_on and "Match game: On" or "Match game: Off",
-            align = lvgl.ALIGN.CENTER,
-        }
-        match:onClicked(function()
-            match_on = not match_on
-            match_label:set{ text = match_on and "Match game: On" or "Match game: Off" }
-            save_config()
-        end)
+        local set = c:Button{ w = lvgl.PCT(48), h = 34 }
+        set:Label{ text = "Settings", align = lvgl.ALIGN.CENTER }
+        set:onClicked(function() create_settings_screen() end)
 
         if pad then
             local touch = c:Button{ w = lvgl.PCT(48), h = 34 }
@@ -689,13 +783,10 @@ local init_phase = 0
 return function()
     init_phase = init_phase + 1
     if init_phase == 1 then
-        scan_games()
+        -- The config first: it names the Settings game folder to scan.
         load_config()
-        if selected_name then
-            for i, g in ipairs(games) do
-                if g.name == selected_name then selected = i; break end
-            end
-        end
+        scan_games()
+        select_game(selected_name)
         return false
     end
     create_main_screen()

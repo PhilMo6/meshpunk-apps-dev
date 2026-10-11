@@ -12,6 +12,8 @@ Disk images and game folders go in /dos on the SD card. If you have no disks, th
 
 Put a boot disk in A: (or C:), then either add game .img disks in A: or point C: at a folder of games. A folder becomes a real writable C: drive, so installers run and save games persist.
 
+Settings has a Game folder: any folder on the SD card or in internal storage. Its .img disks and its subfolders join the A: and C: lists alongside those in /dos and the app folder.
+
 The Boot button lists every setting it will start with before it starts, including whether the trackball acts as a mouse or as arrow keys.
 
 WHEN A GAME MISBEHAVES

@@ -9,6 +9,7 @@ ROMS
 .smc, .sfc and .fig files, in /snes on the SD card or in the Snes app folder. Battery saves are written to a .srm file next to the ROM.
 
 SETTINGS
+- Game folder: any folder on the SD card or in internal storage; its ROMs join the list alongside those in /snes and the app folder.
 - Renderer: the one to reach for per game. Speed is the default and is much faster; Accuracy redraws the slower way some games need if the picture looks wrong.
 
 The Speed renderer needs a large block of free memory for its worker. If it cannot get one the launcher says so, because otherwise you would silently get the slower path anyway.

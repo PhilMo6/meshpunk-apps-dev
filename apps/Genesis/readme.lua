@@ -7,6 +7,7 @@ ROMS
 .md, .gen and .bin files, in /genesis on the SD card or in the Genesis app folder. Battery-backed saves are written to a .srm file next to the ROM.
 
 SETTINGS
+- Game folder: any folder on the SD card or in internal storage; its ROMs join the list alongside those in /genesis and the app folder.
 - Idle Skip: on by default and worth leaving on. If a game stalls at a fixed point, or crawls while its music keeps playing, turn it off and relaunch - that trades some speed for compatibility.
 - Frameskip: drops frames to keep the pace up.
 

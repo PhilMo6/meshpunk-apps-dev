@@ -97,7 +97,8 @@ apps = ["mtlite_messenger", "mtlite_radio"]   # primary app ids offered after in
 `usb_drivers/<id>/` on the device (internal flash `L:` or SD `S:`); the running
 firmware loads a matching driver the moment a device is plugged in — no restart.
 Manage them on-device from **Tools > USB > "USB drivers..."**. Every driver needs
-`min_fw = 2` (the firmware level that introduced dynamic drivers).
+`min_fw = 2` or higher (2 is the firmware level that introduced dynamic drivers; a
+driver that uses a later part of the driver ABI needs that level).
 
 The `id` **is** the install folder name and must match what the driver and its
 companion app expect (the Gamepad app looks in `usb_drivers/gamepad`), so unlike
@@ -120,8 +121,9 @@ files = ["gamepad.drv.elf", "match"]    # relative to drivers/<id>/
 
 `[[themes]]` entries in `catalog.toml` use the same fields (no `category`/`type`);
 files live under `themes/<id>/` with a `theme.lua` entry point. The device's
-Settings > Theme > Get button installs them to `/meshpunk/themes/<id>` (SD, or
-internal without a card), where the theme picker discovers them automatically.
+App Library lists them under its pinned Themes category and installs them to
+`/meshpunk/themes/<id>` (SD) or `/lua/themes/<id>` (internal), the user's
+choice; the Settings > Theme picker discovers them automatically.
 A theme returns `{ name, apply(t) }` — see `themes/meshcore/theme.lua` for the
 palette + procedural-background toolkit in action.
 

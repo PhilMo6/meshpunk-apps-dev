@@ -6,6 +6,9 @@ NES emulator, using Nofrendo.
 ROMS
 .nes files, in /nes on the SD card or in the Nes app folder. No game ROMs are included - supply your own.
 
+SETTINGS
+- Game folder: any folder on the SD card or in internal storage; its ROMs join the list alongside those in /nes and the app folder.
+
 DEFAULT KEYS
 D-pad - W A S D, or the trackball
 A - M, or trackball click

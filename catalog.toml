@@ -31,7 +31,7 @@
 
 [meta]
 version = 1
-updated = "2026-09-28"
+updated = "2026-10-10"
 
 # ── Download-only apps (not shipped in firmware) ─────────────────────────────
 
@@ -39,78 +39,79 @@ updated = "2026-09-28"
 id = "Doom"
 name = "Doom"
 author = "PhilMo6"
-version = "1.3.0"
+version = "1.3.1"
 type = "elf"
 description = "The classic FPS, running native - multiplayer over USB cable or WiFi"
 category = "Games"
-min_fw = 13
+min_fw = 15
+drivers = ["espserial"]
 files = ["readme.lua", "main.lua", "doom.app.elf"]
 
 [[apps]]
 id = "Nes"
 name = "Nes"
 author = "PhilMo6"
-version = "1.3.0"
+version = "1.3.1"
 type = "elf"
 description = "NES emulator (Nofrendo)"
 category = "Games"
-min_fw = 8
+min_fw = 15
 files = ["readme.lua", "main.lua", "nes.app.elf"]
 
 [[apps]]
 id = "Snes"
 name = "Snes"
 author = "PhilMo6"
-version = "1.4.0"
+version = "1.4.1"
 type = "elf"
 description = "SNES emulator (Snes9x)"
 category = "Games"
-min_fw = 8
+min_fw = 15
 files = ["readme.lua", "main.lua", "snes.app.elf"]
 
 [[apps]]
 id = "GameBoy"
 name = "GameBoy"
 author = "PhilMo6"
-version = "1.4.1"
+version = "1.4.2"
 type = "elf"
-description = "Game Boy emulator (gnuboy) with T-Deck link cable"
+description = "Game Boy emulator (gnuboy) with USB link cable"
 category = "Games"
-min_fw = 8
-drivers = ["tdeck"]
+min_fw = 15
+drivers = ["espserial"]
 files = ["readme.lua", "main.lua", "gameboy.app.elf"]
 
 [[apps]]
 id = "NeoGeoPocket"
 name = "NeoGeoPocket"
 author = "PhilMo6"
-version = "1.2.0"
+version = "1.2.1"
 type = "elf"
 description = "Neo Geo Pocket emulator (RACE)"
 category = "Games"
-min_fw = 8
+min_fw = 15
 files = ["readme.lua", "main.lua", "ngpc.app.elf"]
 
 [[apps]]
 id = "Sega8"
 name = "Sega8"
 author = "PhilMo6"
-version = "1.1.0"
+version = "1.1.1"
 type = "elf"
 description = "Game Gear, Master System and SG-1000 emulator (SMS Plus)"
 category = "Games"
-min_fw = 8
+min_fw = 15
 files = ["readme.lua", "main.lua", "sega8.app.elf"]
 
 [[apps]]
 id = "Genesis"
 name = "Genesis"
 author = "PhilMo6"
-version = "1.1.0"
+version = "1.1.1"
 type = "elf"
 description = "Sega Genesis / Mega Drive emulator (Gwenesis)"
 category = "Games"
-min_fw = 8
+min_fw = 15
 files = ["readme.lua", "main.lua", "genesis.app.elf"]
 
 [[apps]]
@@ -121,18 +122,18 @@ version = "1.3.0"
 type = "elf"
 description = "PICO-8 fantasy console player with a BBS cart browser"
 category = "Games"
-min_fw = 8
+min_fw = 15
 files = ["readme.lua", "bbs.lua", "bbs_view.lua", "main.lua", "pico8.app.elf"]
 
 [[apps]]
 id = "Dos"
 name = "Dos"
 author = "PhilMo6"
-version = "1.2.0"
+version = "1.2.1"
 type = "elf"
 description = "386 DOS emulator: VGA, Adlib, Sound Blaster, PS/2 mouse"
 category = "Games"
-min_fw = 8
+min_fw = 15
 files = [
   "readme.lua",
   "main.lua",
@@ -145,7 +146,7 @@ files = [
 id = "Pyxel"
 name = "Pyxel"
 author = "PhilMo6"
-version = "1.0.0"
+version = "1.0.1"
 type = "elf"
 description = "Pyxel retro game player with 7 example games; plays .pyxapp files and Python game folders"
 category = "Games"
@@ -203,10 +204,23 @@ files = ["readme.lua", "main.lua"]
 id = "Code_Editor"
 name = "Code Editor"
 author = "PhilMo6"
-version = "1.0.1"
+version = "1.1.0"
 type = "lua"
-description = "On-device Lua code editor"
+description = "On-device Lua code editor - files on any drive"
 category = "Tools"
+min_fw = 15
+files = ["readme.lua", "main.lua"]
+
+[[apps]]
+id = "Flasher"
+name = "Flasher"
+author = "PhilMo6"
+version = "1.0.0"
+type = "lua"
+description = "Flash and back up ESP32 devices over USB - any firmware, no PC needed"
+category = "Tools"
+min_fw = 15
+drivers = ["espserial"]
 files = ["readme.lua", "main.lua"]
 
 [[apps]]
@@ -227,11 +241,11 @@ files = ["readme.lua", "main.lua"]
 id = "Jet_3D"
 name = "Jet 3D"
 author = "PhilMo6"
-version = "1.2.0"
+version = "1.2.1"
 type = "elf"
 description = "A software 3D engine with lua powered games"
 category = "Games"
-min_fw = 8
+min_fw = 15
 files = [
   "readme.lua",
   "main.lua",
@@ -266,13 +280,25 @@ category = "Network"
 files = ["readme.lua", "main.lua", "core.lua", "parse.lua", "cmds.lua", "cfg.lua"]
 min_fw = 15
 
+[[apps]]
+id = "meshcore_simple_mode"
+name = "Simple Mode"
+author = "PhilMo6"
+version = "1.0.0"
+type = "lua"
+description = "Swap the launcher for a plain messenger: picked contacts, channels and apps, nothing else"
+category = "Meshcore"
+requires_protocol = "meshcore"
+files = ["readme.lua", "main.lua", "simple_launcher.lua", "simple_topbar.lua"]
+min_fw = 14
+
 # ── Preinstalled apps (tracked for OTA updates) ──────────────────────────────
 
 [[apps]]
 id = "App_Library"
 name = "App Library"
 author = "PhilMo6"
-version = "1.2.1"
+version = "1.3.0"
 type = "lua"
 locked = true
 description = "This app — browse and install apps, themes and LoRa protocols"
@@ -852,7 +878,7 @@ files = ["theme.lua"]
 # the running firmware loads a matching driver at device attach — no restart.
 # `id` IS the install folder and MUST match what the driver/app expect
 # (e.g. the Gamepad app looks in usb_drivers/gamepad). Every driver needs
-# min_fw = 2 (the dynamic-driver firmware). Managed on-device from
+# min_fw = 2 or higher (2 = the dynamic-driver firmware). Managed on-device from
 # Tools > USB > "USB drivers..."; an app's `drivers = ["<id>"]` auto-installs
 # the driver right after the app.
 
@@ -874,11 +900,13 @@ min_fw = 2
 description = "USB HID mouse — moves focus, left-click selects"
 files = ["mouse.drv.elf", "match"]
 
+# espserial replaces the retired `tdeck` driver. Both claim the same USB
+# interface, so a device that still has usb_drivers/tdeck must delete it.
 [[drivers]]
-id = "tdeck"
-name = "tdeck"
+id = "espserial"
+name = "espserial"
 author = "PhilMo6"
 version = "1.0.0"
-min_fw = 2
-description = "T-Deck to T-Deck peer link over USB (GameBoy link cable)"
-files = ["tdeck.drv.elf", "match"]
+min_fw = 15
+description = "USB cable to another Meshpunk device — link cable for games, and the Flasher"
+files = ["espserial.drv.elf", "match"]

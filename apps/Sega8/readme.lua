@@ -7,6 +7,7 @@ ROMS
 .gg (Game Gear), .sms (Master System) and .sg (SG-1000) files, in /sega8 on the SD card or in the Sega8 app folder.
 
 SETTINGS
+- Game folder: any folder on the SD card or in internal storage; its ROMs join the list alongside those in /sega8 and the app folder.
 - Scale: Fit, Native or Stretch. Game Gear games have a smaller native picture than Master System ones, so Native looks small for those and Fit is usually the one you want.
 
 DEFAULT KEYS

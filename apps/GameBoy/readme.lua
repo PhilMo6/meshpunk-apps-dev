@@ -7,6 +7,7 @@ ROMS
 .gb and .gbc files, in /gb on the SD card or in the GameBoy app folder. No BIOS or game ROMs are included - supply your own.
 
 SETTINGS
+- Game folder: any folder on the SD card or in internal storage; its ROMs join the list alongside those in /gb and the app folder.
 - GB palette: colour scheme for original Game Boy games. Game Boy Color titles carry their own colours and ignore this.
 - Screen: how the picture fills the display.
 - Resume session: pick up where you left off instead of starting the ROM fresh.

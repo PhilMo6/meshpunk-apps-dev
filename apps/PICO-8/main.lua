@@ -76,7 +76,7 @@ local function scan_dir_for_carts(dir_path)
             seen_lower[low] = true
             found_carts[#found_carts + 1] = {
                 name = e.name,
-                path = dir_path .. "/" .. e.name,
+                path = fileman.join(dir_path, e.name),
             }
         end
     end
@@ -146,11 +146,46 @@ local pad = padlayout and padlayout.new{
 -- as an upvalue.
 local kb
 
+-- Game folder picked in Settings (saved as folder= in the config), scanned
+-- after the built-in folders.
+local extra_dir = nil
+
+-- Reads only the folder= line: the folder must be known before the scan
+-- phases run, while load_config needs the scan results for the cart selection.
+local function load_folder()
+    local f = io.open(CFG_PATH, "r")
+    if not f then return end
+    local text = f:read("*a") or ""
+    f:close()
+    for line in text:gmatch("[^\r\n]+") do
+        local d = line:match("^folder=(.+)$")
+        if d then extra_dir = d end
+    end
+end
+
+-- Rescans every folder after the game folder changes, keeping the selected
+-- cart by name.
+local function rescan_carts()
+    local keep = found_carts[selected_cart] and found_carts[selected_cart].name
+    found_carts = {}
+    seen_lower = {}
+    scan_dir_for_carts(app_dir)
+    scan_dir_for_carts(sd_app_dir)
+    if sd_app_dir ~= "S:/p8carts" then scan_dir_for_carts("S:/p8carts") end
+    if extra_dir then scan_dir_for_carts(extra_dir) end
+    sort_carts()
+    selected_cart = 1
+    for i, cc in ipairs(found_carts) do
+        if cc.name == keep then selected_cart = i; break end
+    end
+end
+
 -- Save bindings + settings to config file
 local function save_config()
     local f = io.open(CFG_PATH, "w")
     if not f then return end
     kb:save_lines(f)
+    if extra_dir then f:write("folder=" .. extra_dir .. "\n") end
     if #found_carts > 0 then
         f:write("cart=" .. found_carts[selected_cart].name .. "\n")
     end
@@ -171,6 +206,8 @@ local function load_config()
         kb:load_line(line)
         local cname = line:match("^cart=(.+)$")
         if cname then selected_cart_name = cname end
+        local d = line:match("^folder=(.+)$")
+        if d then extra_dir = d end
     end
     return true
 end
@@ -216,6 +253,7 @@ end
 local function create_main_screen() end
 local function create_help_screen() end
 local function create_about_screen() end
+local function create_settings_screen() end
 
 -- Controls, the key picker and the trackball Input screen all live in
 -- lib/keybind. It renders through this app's show_screen, so the view stack,
@@ -381,7 +419,7 @@ create_main_screen = function()
         local status = c:Label{
             text = has_carts and "Ready to play"
                    or (HAS_BBS and "No carts yet - get some from the BBS"
-                       or "Place .p8 carts in S:/p8carts/"),
+                       or "Place .p8 carts in S:/p8carts/ or\npick a folder in Settings"),
             text_font = FONT,
             text_color = has_carts and "#888888" or "#FF6666",
             w = lvgl.PCT(100), h = lvgl.SIZE_CONTENT,
@@ -419,6 +457,10 @@ create_main_screen = function()
             end)
         end
 
+        local setBtn = c:Button{ w = lvgl.PCT(48), h = 34 }
+        setBtn:Label{ text = "Settings", align = lvgl.ALIGN.CENTER }
+        setBtn:onClicked(function() create_settings_screen() end)
+
         local quitBtn = c:Button{ w = lvgl.PCT(48), h = 34 }
         quitBtn:Label{ text = "Quit", align = lvgl.ALIGN.CENTER }
         quitBtn:onClicked(function()
@@ -435,6 +477,79 @@ create_main_screen = function()
         aboutBtn:onClicked(function() create_about_screen() end)
 
         update_cart_preview()
+    end)
+end
+
+-- ============================================================
+-- Settings screen — the game folder, picked with lib/filepick.
+-- `note` shows in red under the folder row.
+-- ============================================================
+local function folder_rows(c, note)
+    c:Label{
+        text = "Game folder",
+        text_font = FONT, text_color = "#CCCCCC",
+        w = lvgl.PCT(100), h = lvgl.SIZE_CONTENT,
+    }
+    local shown = extra_dir or "None"
+    if #shown > 26 then shown = "..." .. shown:sub(-23) end
+    local pick = c:Button{ w = extra_dir and lvgl.PCT(70) or lvgl.PCT(100), h = 28 }
+    pick:Label{ text = shown, text_font = FONT, align = lvgl.ALIGN.CENTER }
+    pick:onClicked(function()
+        require("lib/filepick").open(root, {
+            mode = "dir",
+            title = "Choose a game folder",
+            start = extra_dir or "S:/",
+            on_pick = function(path)
+                -- The module opens files through /sd and /littlefs only.
+                if path:sub(1, 2) == "U:" then
+                    create_settings_screen("Carts can't run from a USB drive:\n"
+                        .. "pick a folder on the SD card or in\n"
+                        .. "internal storage.")
+                    return
+                end
+                extra_dir = path
+                rescan_carts()
+                save_config()
+                create_settings_screen()
+            end,
+        })
+    end)
+    if extra_dir then
+        local clear = c:Button{ w = lvgl.PCT(26), h = 28 }
+        clear:Label{ text = "Clear", text_font = FONT, align = lvgl.ALIGN.CENTER }
+        clear:onClicked(function()
+            extra_dir = nil
+            rescan_carts()
+            save_config()
+            create_settings_screen()
+        end)
+    end
+    if note then
+        c:Label{
+            text = note,
+            text_font = FONT, text_color = "#FF6666",
+            w = lvgl.PCT(100), h = lvgl.SIZE_CONTENT,
+        }
+    end
+end
+
+create_settings_screen = function(note)
+    show_screen(function(c)
+        heading(c, "SETTINGS", ACCENT)
+
+        folder_rows(c, note)
+
+        c:Label{
+            text = "Game folder: its carts join the list,\n"
+                 .. "as well as those in S:/p8carts and\n"
+                 .. "the app folder",
+            text_font = FONT, text_color = "#666666",
+            w = lvgl.PCT(100), h = lvgl.SIZE_CONTENT,
+        }
+
+        local backBtn = c:Button{ w = lvgl.PCT(60), h = 28 }
+        backBtn:Label{ text = "Back", text_font = FONT, align = lvgl.ALIGN.CENTER }
+        backBtn:onClicked(function() create_main_screen() end)
     end)
 end
 
@@ -528,6 +643,8 @@ return function()
         if sd_app_dir ~= "S:/p8carts" then
             scan_dir_for_carts("S:/p8carts")
         end
+        load_folder()
+        if extra_dir then scan_dir_for_carts(extra_dir) end
         return false
     end
 

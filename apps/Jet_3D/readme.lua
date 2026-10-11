@@ -6,6 +6,9 @@ Jet 3D is a 3D game engine rather than an emulator: the games are built for it, 
 GAMES
 Game folders in /jet3d on the SD card, or in the Jet 3D app folder. The launcher lists what it finds and remembers your last choice.
 
+SETTINGS
+- Game folder: any folder on the SD card or in internal storage; its game folders join the list alongside those in /jet3d.
+
 DEFAULT KEYS
 Up / Thrust - W, or trackball up
 Down / Use item - S, or trackball down

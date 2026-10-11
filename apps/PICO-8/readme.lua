@@ -6,6 +6,9 @@ PICO-8 fantasy console, using the fake08 core. It runs carts made for PICO-8; it
 CARTS
 .p8 and .p8.png cart files, in /p8carts on the SD card or in the PICO-8 app folder. A plain .png is not a cart - the double extension is PICO-8's own cart-image format.
 
+SETTINGS
+- Game folder: any folder on the SD card or in internal storage; its carts join the list alongside those in /p8carts and the app folder.
+
 BBS
 The BBS button lists the carts people share on the PICO-8 BBS at lexaloffle.com: Featured, Releases, Work in progress, Jam and the other sections, or a search. Pick a cart to see its cart image, author and BBS page, then Download - the cart is saved to /p8carts on the SD card and joins your cart list, ready to Play. Description loads the author's post from the BBS: the description, tags, stars and license. Needs WiFi and an SD card. Carts posted to the BBS belong to their authors.
 ]]

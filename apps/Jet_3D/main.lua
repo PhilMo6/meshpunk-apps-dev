@@ -95,7 +95,7 @@ local function scan_dir_for_games(dir_path)
     for _, e in ipairs(entries) do
         local low = e.name:lower()
         if not seen_lower[low] then
-            local folder = dir_path .. "/" .. e.name
+            local folder = fileman.join(dir_path, e.name)
             local f = io.open(folder .. "/main.lua", "r")
             if f then
                 f:close()
@@ -106,7 +106,43 @@ local function scan_dir_for_games(dir_path)
     end
 end
 
--- The config holds the chosen game and the key bindings. Engine settings
+-- Game folder picked in Settings (saved as folder= in the config), scanned
+-- after the built-in folders.
+local extra_dir = nil
+
+-- Reads only the folder= line: the folder must be known before the scan
+-- phases run, while load_config needs the scan results for the selection.
+local function load_folder()
+    local f = io.open(CFG_PATH, "r")
+    if not f then return end
+    local text = f:read("*a") or ""
+    f:close()
+    for line in text:gmatch("[^\r\n]+") do
+        local d = line:match("^folder=(.+)$")
+        if d then extra_dir = d end
+    end
+end
+
+-- Rescans every folder after the game folder changes, keeping the selected
+-- game by name.
+local function rescan_games()
+    local keep = found_games[sel_game] and found_games[sel_game].name
+    found_games = {}
+    seen_lower = {}
+    scan_dir_for_games(app_dir .. "/games")
+    scan_dir_for_games(sd_app_dir .. "/games")
+    scan_dir_for_games("S:/jet3d")
+    if extra_dir then scan_dir_for_games(extra_dir) end
+    table.sort(found_games, function(a, b)
+        return a.name:lower() < b.name:lower()
+    end)
+    sel_game = 1
+    for i, g in ipairs(found_games) do
+        if g.name == keep then sel_game = i; break end
+    end
+end
+
+-- The config holds the chosen game, the game folder and the key bindings. Engine settings
 -- are constants now, so a cfg written by an older build keeps its stale
 -- band=/fps=/checker=/... lines — they simply no longer match anything
 -- here and are ignored, which is what makes the settled defaults stick.
@@ -116,6 +152,7 @@ local function save_config()
     if sel_game > 0 and found_games[sel_game] then
         f:write("game=" .. found_games[sel_game].name .. "\n")
     end
+    if extra_dir then f:write("folder=" .. extra_dir .. "\n") end
     if kb then kb:save_lines(f) end
     f:close()
 end
@@ -131,6 +168,8 @@ local function load_config()
         if not (kb and kb:load_line(line)) then
             local name = line:match("^game=(.+)$")
             if name then sel_game_name = name end
+            local d = line:match("^folder=(.+)$")
+            if d then extra_dir = d end
         end
     end
 end
@@ -183,6 +222,7 @@ end
 local function create_main_screen() end
 local function create_controls_screen() end
 local function create_about_screen() end
+local function create_settings_screen() end
 
 -- ============================================================
 -- Key bindings (lib/keybind)
@@ -266,7 +306,7 @@ create_main_screen = function()
         heading(c, "Game", "#CCCCCC")
 
         if #found_games == 0 then
-            body(c, "No games found.\nPut a folder with main.lua in\nS:/jet3d/ on the SD card.", "#FF6666")
+            body(c, "No games found.\nPut a folder with main.lua in\nS:/jet3d/ on the SD card, or pick\na folder in Settings.", "#FF6666")
         else
             local names = {}
             for i, g in ipairs(found_games) do names[i] = g.name end
@@ -336,6 +376,10 @@ create_main_screen = function()
             end)
         end
 
+        local setBtn = c:Button{ w = lvgl.PCT(48), h = 28 }
+        setBtn:Label{ text = "Settings", align = lvgl.ALIGN.CENTER }
+        setBtn:onClicked(function() create_settings_screen() end)
+
         local aboutBtn = c:Button{ w = lvgl.PCT(48), h = 28 }
         aboutBtn:Label{ text = "About", align = lvgl.ALIGN.CENTER }
         aboutBtn:onClicked(function() create_about_screen() end)
@@ -351,6 +395,75 @@ end
 -- ============================================================
 create_controls_screen = function()
     kb:open()
+end
+
+-- ============================================================
+-- Settings — the game folder, picked with lib/filepick.
+-- `note` shows in red under the folder row.
+-- ============================================================
+local function folder_rows(c, note)
+    c:Label{
+        text = "Game folder",
+        text_font = FONT, text_color = "#CCCCCC",
+        w = lvgl.PCT(100), h = lvgl.SIZE_CONTENT,
+    }
+    local shown = extra_dir or "None"
+    if #shown > 26 then shown = "..." .. shown:sub(-23) end
+    local pick = c:Button{ w = extra_dir and lvgl.PCT(70) or lvgl.PCT(100), h = 28 }
+    pick:Label{ text = shown, text_font = FONT, align = lvgl.ALIGN.CENTER }
+    pick:onClicked(function()
+        require("lib/filepick").open(root, {
+            mode = "dir",
+            title = "Choose a game folder",
+            start = extra_dir or "S:/",
+            on_pick = function(path)
+                -- The module opens files through /sd and /littlefs only.
+                if path:sub(1, 2) == "U:" then
+                    create_settings_screen("Games can't run from a USB drive:\n"
+                        .. "pick a folder on the SD card or in\n"
+                        .. "internal storage.")
+                    return
+                end
+                extra_dir = path
+                rescan_games()
+                save_config()
+                create_settings_screen()
+            end,
+        })
+    end)
+    if extra_dir then
+        local clear = c:Button{ w = lvgl.PCT(26), h = 28 }
+        clear:Label{ text = "Clear", text_font = FONT, align = lvgl.ALIGN.CENTER }
+        clear:onClicked(function()
+            extra_dir = nil
+            rescan_games()
+            save_config()
+            create_settings_screen()
+        end)
+    end
+    if note then
+        c:Label{
+            text = note,
+            text_font = FONT, text_color = "#FF6666",
+            w = lvgl.PCT(100), h = lvgl.SIZE_CONTENT,
+        }
+    end
+end
+
+create_settings_screen = function(note)
+    show_screen(function(c)
+        heading(c, "SETTINGS", ACCENT)
+
+        folder_rows(c, note)
+
+        body(c, "Game folder: its game folders join the\n"
+             .. "list, as well as those in S:/jet3d and\n"
+             .. "the app's games folder", "#666666")
+
+        local backBtn = c:Button{ w = lvgl.PCT(100), h = 28 }
+        backBtn:Label{ text = "Back", align = lvgl.ALIGN.CENTER }
+        backBtn:onClicked(function() create_main_screen() end)
+    end)
 end
 
 -- ============================================================
@@ -405,6 +518,8 @@ return function()
         return false
     elseif init_phase == 3 then
         scan_dir_for_games("S:/jet3d")
+        load_folder()
+        if extra_dir then scan_dir_for_games(extra_dir) end
         return false
     end
 

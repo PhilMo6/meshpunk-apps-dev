@@ -7,6 +7,7 @@ WADS
 Place a .wad in /doom on the SD card or in the Doom app folder. Freedoom wads work, as do the original ones. A PWAD needs a valid IWAD alongside it. Large wads take a while to load.
 
 SETTINGS
+- Game folder: any folder on the SD card or in internal storage; its WADs join the list alongside those in /doom and the app folder.
 - Music: OFF or ON.
 - SFX: OFF or ON.
 

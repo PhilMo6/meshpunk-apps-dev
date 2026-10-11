@@ -144,7 +144,7 @@ local function scan_dir_for_wads(dir_path)
             seen_lower[low] = true
             found_wads[#found_wads + 1] = {
                 name = e.name,
-                path = dir_path .. "/" .. e.name,
+                path = fileman.join(dir_path, e.name),
                 wtype = "unknown",  -- classified one-per-tick in deferred init
             }
         end
@@ -297,6 +297,59 @@ local function mp_selected_level()
     return levels[1]
 end
 
+-- Game folder picked in Settings (saved as folder= in the config), scanned
+-- after the built-in folders.
+local extra_dir = nil
+
+-- Reads only the folder= line: the folder must be known before the scan
+-- phases run, while load_config needs the scan results for the selections.
+local function load_folder()
+    local f = io.open(CFG_PATH, "r")
+    if not f then return end
+    local text = f:read("*a") or ""
+    f:close()
+    for line in text:gmatch("[^\r\n]+") do
+        local d = line:match("^folder=(.+)$")
+        if d then extra_dir = d end
+    end
+end
+
+-- Sorts the WADs (IWADs first) and rebuilds the base-game list from them.
+local function finish_scan()
+    table.sort(found_wads, function(a, b)
+        if a.wtype ~= b.wtype then return a.wtype == "iwad" end
+        return a.name:lower() < b.name:lower()
+    end)
+    iwad_list = {}
+    for i, w in ipairs(found_wads) do
+        if w.wtype == "iwad" then
+            iwad_list[#iwad_list + 1] = { idx = i, name = w.name, path = w.path }
+        end
+    end
+end
+
+-- Rescans every folder after the game folder changes, classifying the WADs
+-- in one go (one header read each) and keeping both selections by name.
+local function rescan_wads()
+    local keep = found_wads[selected_wad] and found_wads[selected_wad].name
+    local keep_base = iwad_list[selected_base] and iwad_list[selected_base].name
+    found_wads = {}
+    seen_lower = {}
+    scan_dir_for_wads(app_dir)
+    scan_dir_for_wads(sd_app_dir)
+    if sd_app_dir ~= "S:/doom" then scan_dir_for_wads("S:/doom") end
+    if extra_dir then scan_dir_for_wads(extra_dir) end
+    for _, w in ipairs(found_wads) do w.wtype = wad_type(w.path) end
+    finish_scan()
+    selected_wad, selected_base = 1, 1
+    for i, w in ipairs(found_wads) do
+        if w.name == keep then selected_wad = i; break end
+    end
+    for i, b in ipairs(iwad_list) do
+        if b.name == keep_base then selected_base = i; break end
+    end
+end
+
 -- Save bindings + settings to config file
 local function save_config()
     local f = io.open(CFG_PATH, "w")
@@ -304,6 +357,7 @@ local function save_config()
     kb:save_lines(f)
     f:write(string.format("sfx=%d\n", sfx_enabled and 1 or 0))
     f:write(string.format("music=%d\n", music_enabled and 1 or 0))
+    if extra_dir then f:write("folder=" .. extra_dir .. "\n") end
     f:write(string.format("mp_mode=%d\n", mp_mode))
     f:write(string.format("mp_players=%d\n", mp_players))
     f:write(string.format("mp_dm=%d\n", mp_dm))
@@ -341,6 +395,8 @@ local function load_config()
         if wname then selected_wad_name = wname end
         local bname = line:match("^basewad=(.+)$")
         if bname then selected_base_name = bname end
+        local d = line:match("^folder=(.+)$")
+        if d then extra_dir = d end
         -- Multiplayer choices; out-of-range values fall back to defaults.
         local mkey, mval = line:match("^mp_(%w+)=(.*)$")
         if mkey then
@@ -439,6 +495,7 @@ local function create_main_screen() end
 local function create_help_screen() end
 local function create_about_screen() end
 local function create_multiplayer_screen() end
+local function create_settings_screen() end
 
 -- Controls, the key picker and the trackball Input screen all live in
 -- lib/keybind. It renders through this app's show_screen, so the view stack,
@@ -579,34 +636,11 @@ create_main_screen = function()
         local has_wads = #found_wads > 0
         local status = c:Label{
             text = has_wads and "Ready to launch"
-                   or "Place a .WAD in " .. sd_app_dir,
+                   or "Place a .WAD in " .. sd_app_dir .. "\nor pick a folder in Settings",
             text_font = FONT,
             text_color = has_wads and "#888888" or "#FF6666",
             w = lvgl.PCT(100), h = lvgl.SIZE_CONTENT,
         }
-
-        -- Options: SFX + Music toggles
-        local sfxBtn = c:Button{ w = lvgl.PCT(48), h = 28 }
-        local sfxLbl = sfxBtn:Label{
-            text = sfx_enabled and "SFX: ON" or "SFX: OFF",
-            align = lvgl.ALIGN.CENTER,
-        }
-        sfxBtn:onClicked(function()
-            sfx_enabled = not sfx_enabled
-            sfxLbl:set{ text = sfx_enabled and "SFX: ON" or "SFX: OFF" }
-            save_config()
-        end)
-
-        local musBtn = c:Button{ w = lvgl.PCT(48), h = 28 }
-        local musLbl = musBtn:Label{
-            text = music_enabled and "Music: ON" or "Music: OFF",
-            align = lvgl.ALIGN.CENTER,
-        }
-        musBtn:onClicked(function()
-            music_enabled = not music_enabled
-            musLbl:set{ text = music_enabled and "Music: ON" or "Music: OFF" }
-            save_config()
-        end)
 
         -- Action buttons
         local launchBtn = c:Button{ w = lvgl.PCT(48), h = 34 }
@@ -652,6 +686,10 @@ create_main_screen = function()
                 }
             end)
         end
+
+        local setBtn = c:Button{ w = lvgl.PCT(48), h = 34 }
+        setBtn:Label{ text = "Settings", align = lvgl.ALIGN.CENTER }
+        setBtn:onClicked(function() create_settings_screen() end)
 
         local quitBtn = c:Button{ w = lvgl.PCT(48), h = 34 }
         quitBtn:Label{ text = "Quit", align = lvgl.ALIGN.CENTER }
@@ -964,6 +1002,93 @@ create_multiplayer_screen = function()
 end
 
 -- ============================================================
+-- Settings screen — the game folder (lib/filepick) and the audio toggles.
+-- `note` shows in red under the folder row.
+-- ============================================================
+local setting_row = keybind.rows{ font = FONT, on_save = save_config }
+
+local function folder_rows(c, note)
+    c:Label{
+        text = "Game folder",
+        text_font = FONT, text_color = "#CCCCCC",
+        w = lvgl.PCT(100), h = lvgl.SIZE_CONTENT,
+    }
+    local shown = extra_dir or "None"
+    if #shown > 26 then shown = "..." .. shown:sub(-23) end
+    local pick = c:Button{ w = extra_dir and lvgl.PCT(70) or lvgl.PCT(100), h = 28 }
+    pick:Label{ text = shown, text_font = FONT, align = lvgl.ALIGN.CENTER }
+    pick:onClicked(function()
+        require("lib/filepick").open(root, {
+            mode = "dir",
+            title = "Choose a game folder",
+            start = extra_dir or "S:/",
+            on_pick = function(path)
+                -- The module opens files through /sd and /littlefs only.
+                if path:sub(1, 2) == "U:" then
+                    create_settings_screen("Games can't run from a USB drive:\n"
+                        .. "pick a folder on the SD card or in\n"
+                        .. "internal storage.")
+                    return
+                end
+                extra_dir = path
+                rescan_wads()
+                save_config()
+                create_settings_screen()
+            end,
+        })
+    end)
+    if extra_dir then
+        local clear = c:Button{ w = lvgl.PCT(26), h = 28 }
+        clear:Label{ text = "Clear", text_font = FONT, align = lvgl.ALIGN.CENTER }
+        clear:onClicked(function()
+            extra_dir = nil
+            rescan_wads()
+            save_config()
+            create_settings_screen()
+        end)
+    end
+    if note then
+        c:Label{
+            text = note,
+            text_font = FONT, text_color = "#FF6666",
+            w = lvgl.PCT(100), h = lvgl.SIZE_CONTENT,
+        }
+    end
+end
+
+create_settings_screen = function(note)
+    show_screen(function(c)
+        heading(c, "SETTINGS", ACCENT)
+
+        folder_rows(c, note)
+
+        setting_row(c, "SFX",
+            function() return sfx_enabled and "< ON >" or "< OFF >" end,
+            function() sfx_enabled = not sfx_enabled end
+        )
+
+        setting_row(c, "Music",
+            function() return music_enabled and "< ON >" or "< OFF >" end,
+            function() music_enabled = not music_enabled end
+        )
+
+        c:Label{
+            text = "Game folder: its WADs join the list,\n"
+                 .. "as well as those in S:/doom and the\n"
+                 .. "app folder\n"
+                 .. "SFX / Music: the game's sound effects\n"
+                 .. "and music, switched independently",
+            text_font = FONT, text_color = "#666666",
+            w = lvgl.PCT(100), h = lvgl.SIZE_CONTENT,
+        }
+
+        local backBtn = c:Button{ w = lvgl.PCT(60), h = 28 }
+        backBtn:Label{ text = "Back", text_font = FONT, align = lvgl.ALIGN.CENTER }
+        backBtn:onClicked(function() create_main_screen() end)
+    end)
+end
+
+-- ============================================================
 -- Quit help screen (firmware-wide Alt+Backspace exit chord)
 -- ============================================================
 create_help_screen = function()
@@ -1052,6 +1177,8 @@ return function()
         if sd_app_dir ~= "S:/doom" then
             scan_dir_for_wads("S:/doom")
         end
+        load_folder()
+        if extra_dir then scan_dir_for_wads(extra_dir) end
         classify_idx = 0
         return false
     end
@@ -1065,15 +1192,7 @@ return function()
     end
 
     -- Final phase: sort, build IWAD list, config, screen
-    table.sort(found_wads, function(a, b)
-        if a.wtype ~= b.wtype then return a.wtype == "iwad" end
-        return a.name:lower() < b.name:lower()
-    end)
-    for i, w in ipairs(found_wads) do
-        if w.wtype == "iwad" then
-            iwad_list[#iwad_list + 1] = { idx = i, name = w.name, path = w.path }
-        end
-    end
+    finish_scan()
     load_config()
     create_main_screen()
     return true

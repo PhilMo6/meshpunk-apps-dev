@@ -7,6 +7,7 @@ ROMS
 .ngp and .ngc files, in /ngpc on the SD card or in the NeoGeoPocket app folder.
 
 SETTINGS
+- Game folder: any folder on the SD card or in internal storage; its ROMs join the list alongside those in /ngpc and the app folder.
 - Sound: turns the game's sound on or off entirely.
 - Video rate: Smooth (35 fps) or Speed (25 fps). Fewer video frames leave more headroom for game speed, so switch to Speed if a game runs badly.
 

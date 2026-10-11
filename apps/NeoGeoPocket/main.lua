@@ -16,7 +16,7 @@ local H = lvgl.VER_RES()
 local TITLE     = "Neo Geo Pocket"
 local ACCENT    = "#00AAFF"
 local ELF_NAME  = "ngpc.app.elf"
-local ROM_HINT  = "Place .ngp/.ngc ROMs in S:/ngpc/"
+local ROM_HINT  = "Place .ngp/.ngc ROMs in S:/ngpc/ or\npick a folder in Settings"
 local EXTRA_DIR = "S:/ngpc"
 local function is_rom(name)
     return name:match("%.ngp$") or name:match("%.ngc$") or name:match("%.ngpc$")
@@ -81,7 +81,7 @@ local function scan_dir_for_roms(dir_path)
             seen_lower[low] = true
             found_roms[#found_roms + 1] = {
                 name = e.name,
-                path = dir_path .. "/" .. e.name,
+                path = fileman.join(dir_path, e.name),
             }
         end
     end
@@ -144,6 +144,44 @@ local pad = padlayout and padlayout.new{
 -- as an upvalue.
 local kb
 
+-- Game folder picked in Settings (saved as folder= in the config), scanned
+-- after the built-in folders.
+local extra_dir = nil
+
+-- Reads only the folder= line: the folder must be known before the scan
+-- phases run, while load_config needs the scan results for the ROM selection.
+local function load_folder()
+    local f = io.open(CFG_PATH, "r")
+    if not f then return end
+    local text = f:read("*a") or ""
+    f:close()
+    for line in text:gmatch("[^\r\n]+") do
+        local d = line:match("^folder=(.+)$")
+        if d then extra_dir = d end
+    end
+end
+
+-- Rescans every folder after the game folder changes, keeping the selected
+-- ROM by name.
+local function rescan_roms()
+    local keep = found_roms[selected_rom] and found_roms[selected_rom].name
+    found_roms = {}
+    seen_lower = {}
+    scan_dir_for_roms(app_dir)
+    scan_dir_for_roms(sd_app_dir)
+    if EXTRA_DIR ~= app_dir and EXTRA_DIR ~= sd_app_dir then
+        scan_dir_for_roms(EXTRA_DIR)
+    end
+    if extra_dir then scan_dir_for_roms(extra_dir) end
+    table.sort(found_roms, function(a, b)
+        return a.name:lower() < b.name:lower()
+    end)
+    selected_rom = 1
+    for i, r in ipairs(found_roms) do
+        if r.name == keep then selected_rom = i; break end
+    end
+end
+
 -- ============================================================
 -- Config persistence
 -- ============================================================
@@ -153,6 +191,7 @@ local function save_config()
     kb:save_lines(f)
     f:write("vcap=" .. (vcap_smooth and "35" or "25") .. "\n")
     f:write("sound=" .. (sound_on and "1" or "0") .. "\n")
+    if extra_dir then f:write("folder=" .. extra_dir .. "\n") end
     if #found_roms > 0 then
         f:write("rom=" .. found_roms[selected_rom].name .. "\n")
     end
@@ -176,6 +215,8 @@ local function load_config()
         if snd then sound_on = (snd == "1") end
         local rname = line:match("^rom=(.+)$")
         if rname then selected_rom_name = rname end
+        local d = line:match("^folder=(.+)$")
+        if d then extra_dir = d end
     end
 end
 
@@ -355,11 +396,63 @@ create_main_screen = function()
 end
 
 -- ============================================================
--- Settings screen
+-- Settings screen — the game folder (lib/filepick) and the module options.
+-- `note` shows in red under the folder row.
 -- ============================================================
-create_settings_screen = function()
+local function folder_rows(c, note)
+    c:Label{
+        text = "Game folder",
+        text_font = FONT, text_color = "#CCCCCC",
+        w = lvgl.PCT(100), h = lvgl.SIZE_CONTENT,
+    }
+    local shown = extra_dir or "None"
+    if #shown > 26 then shown = "..." .. shown:sub(-23) end
+    local pick = c:Button{ w = extra_dir and lvgl.PCT(70) or lvgl.PCT(100), h = 28 }
+    pick:Label{ text = shown, text_font = FONT, align = lvgl.ALIGN.CENTER }
+    pick:onClicked(function()
+        require("lib/filepick").open(root, {
+            mode = "dir",
+            title = "Choose a game folder",
+            start = extra_dir or "S:/",
+            on_pick = function(path)
+                -- The module opens files through /sd and /littlefs only.
+                if path:sub(1, 2) == "U:" then
+                    create_settings_screen("Games can't run from a USB drive:\n"
+                        .. "pick a folder on the SD card or in\n"
+                        .. "internal storage.")
+                    return
+                end
+                extra_dir = path
+                rescan_roms()
+                save_config()
+                create_settings_screen()
+            end,
+        })
+    end)
+    if extra_dir then
+        local clear = c:Button{ w = lvgl.PCT(26), h = 28 }
+        clear:Label{ text = "Clear", text_font = FONT, align = lvgl.ALIGN.CENTER }
+        clear:onClicked(function()
+            extra_dir = nil
+            rescan_roms()
+            save_config()
+            create_settings_screen()
+        end)
+    end
+    if note then
+        c:Label{
+            text = note,
+            text_font = FONT, text_color = "#FF6666",
+            w = lvgl.PCT(100), h = lvgl.SIZE_CONTENT,
+        }
+    end
+end
+
+create_settings_screen = function(note)
     show_screen(function(c)
         heading(c, "SETTINGS")
+
+        folder_rows(c, note)
 
         setting_row(c, "Video rate",
             function()
@@ -374,7 +467,10 @@ create_settings_screen = function()
         )
 
         c:Label{
-            text = "Video rate: fewer video frames leave\n"
+            text = "Game folder: its ROMs join the list,\n"
+                 .. "as well as those in " .. EXTRA_DIR .. " and\n"
+                 .. "the app folder\n"
+                 .. "Video rate: fewer video frames leave\n"
                  .. "more headroom for game speed\n"
                  .. "Sound: silences the game entirely",
             text_font = FONT,
@@ -476,6 +572,8 @@ return function()
         if EXTRA_DIR ~= app_dir and EXTRA_DIR ~= sd_app_dir then
             scan_dir_for_roms(EXTRA_DIR)
         end
+        load_folder()
+        if extra_dir then scan_dir_for_roms(extra_dir) end
         return false
     end
 

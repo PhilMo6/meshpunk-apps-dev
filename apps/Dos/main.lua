@@ -69,7 +69,7 @@ local function scan_dir_for_imgs(dir_path)
             seen_lower[low] = true
             found_imgs[#found_imgs + 1] = {
                 name = e.name,
-                path = dir_path .. "/" .. e.name,
+                path = fileman.join(dir_path, e.name),
             }
         end
     end
@@ -87,7 +87,7 @@ local function scan_dir_for_folders(dir_path)
             seen_folder_lower[low] = true
             found_folders[#found_folders + 1] = {
                 name = e.name,
-                path = dir_path .. "/" .. e.name,
+                path = fileman.join(dir_path, e.name),
             }
         end
     end
@@ -316,10 +316,78 @@ local mouse_speed = 0    -- 0 = arrow keys (default: most DOS games are
 local click_latch = false
 -- No boot-drive selector: SeaBIOS owns the boot order.
 
+-- Game folder picked in Settings (saved as folder= in the config), scanned
+-- after the built-in folders for disk images AND subfolders (C: candidates).
+local extra_dir = nil
+
+-- Reads only the folder= line: the folder must be known before the scan
+-- phases run, while load_config needs the scan results for the selections.
+local function load_folder()
+    local f = io.open(CFG_PATH, "r")
+    if not f then return end
+    local text = f:read("*a") or ""
+    f:close()
+    for line in text:gmatch("[^\r\n]+") do
+        local d = line:match("^folder=(.+)$")
+        if d then extra_dir = d end
+    end
+end
+
+-- Sorts both lists and rebuilds the C: choices (images, then folders).
+local function build_choices()
+    table.sort(found_imgs, function(a, b)
+        return a.name:lower() < b.name:lower()
+    end)
+    table.sort(found_folders, function(a, b)
+        return a.name:lower() < b.name:lower()
+    end)
+    hda_choices = {}
+    for _, r in ipairs(found_imgs) do
+        hda_choices[#hda_choices + 1] = { kind = "img", name = r.name, path = r.path }
+    end
+    for _, r in ipairs(found_folders) do
+        hda_choices[#hda_choices + 1] = { kind = "folder", name = r.name, path = r.path }
+    end
+end
+
+-- Rescans every folder after the game folder changes, keeping both drive
+-- selections by name.
+local function rescan_disks()
+    local keep_fda = sel_fda > 1 and found_imgs[sel_fda - 1] and found_imgs[sel_fda - 1].name
+    local keep_hda = sel_hda > 1 and hda_choices[sel_hda - 1]
+    found_imgs, seen_lower = {}, {}
+    found_folders, seen_folder_lower = {}, {}
+    scan_dir_for_imgs(app_dir)
+    scan_dir_for_imgs(sd_app_dir)
+    scan_dir_for_folders(sd_app_dir)
+    if sd_app_dir ~= "S:/dos" then
+        scan_dir_for_imgs("S:/dos")
+        scan_dir_for_folders("S:/dos")
+    end
+    if extra_dir then
+        scan_dir_for_imgs(extra_dir)
+        scan_dir_for_folders(extra_dir)
+    end
+    build_choices()
+    sel_fda, sel_hda = 1, 1
+    for i, r in ipairs(found_imgs) do
+        if r.name == keep_fda then sel_fda = i + 1; break end
+    end
+    if keep_hda then
+        for i, ch in ipairs(hda_choices) do
+            if ch.kind == keep_hda.kind and ch.name == keep_hda.name then
+                sel_hda = i + 1
+                break
+            end
+        end
+    end
+end
+
 local function save_config()
     local f = io.open(CFG_PATH, "w")
     if not f then return end
     kb:save_lines(f)
+    if extra_dir then f:write("folder=" .. extra_dir .. "\n") end
     f:write(string.format("cpu=%d\n", sel_cpu))
     f:write(string.format("smooth=%d\n", text_smooth and 1 or 0))
     f:write(string.format("rgate=%d\n", render_gate and 1 or 0))
@@ -385,6 +453,8 @@ local function load_config()
         if fname then sel_hda_name = fname end
         fname = line:match("^hdafolder=(.+)$")
         if fname then sel_hda_folder_name = fname end
+        local d = line:match("^folder=(.+)$")
+        if d then extra_dir = d end
     end
     return true
 end
@@ -730,7 +800,7 @@ create_main_screen = function()
         elseif has_any then
             status_text = "No boot disk - use Download DOS"
         else
-            status_text = "Put .img disks / game folders in S:/dos/"
+            status_text = "Put .img disks / game folders in S:/dos/\nor pick a folder in Settings"
         end
         local status = c:Label{
             text = status_text,
@@ -959,11 +1029,70 @@ create_about_screen = function()
 end
 
 -- ============================================================
--- Settings screen
+-- Settings screen — the game folder (lib/filepick) first, then the
+-- compatibility settings. `note` shows in red under the folder row.
 -- ============================================================
-create_settings_screen = function()
+local function folder_rows(c, note)
+    c:Label{
+        text = "Game folder",
+        text_font = FONT, text_color = "#CCCCCC",
+        w = lvgl.PCT(100), h = lvgl.SIZE_CONTENT,
+    }
+    local shown = extra_dir or "None"
+    if #shown > 26 then shown = "..." .. shown:sub(-23) end
+    local pick = c:Button{ w = extra_dir and lvgl.PCT(70) or lvgl.PCT(100), h = 28 }
+    pick:Label{ text = shown, text_font = FONT, align = lvgl.ALIGN.CENTER }
+    pick:onClicked(function()
+        require("lib/filepick").open(root, {
+            mode = "dir",
+            title = "Choose a game folder",
+            start = extra_dir or "S:/",
+            on_pick = function(path)
+                -- The module opens files through /sd and /littlefs only.
+                if path:sub(1, 2) == "U:" then
+                    create_settings_screen("Disks can't run from a USB drive:\n"
+                        .. "pick a folder on the SD card or in\n"
+                        .. "internal storage.")
+                    return
+                end
+                extra_dir = path
+                rescan_disks()
+                save_config()
+                create_settings_screen()
+            end,
+        })
+    end)
+    if extra_dir then
+        local clear = c:Button{ w = lvgl.PCT(26), h = 28 }
+        clear:Label{ text = "Clear", text_font = FONT, align = lvgl.ALIGN.CENTER }
+        clear:onClicked(function()
+            extra_dir = nil
+            rescan_disks()
+            save_config()
+            create_settings_screen()
+        end)
+    end
+    if note then
+        c:Label{
+            text = note,
+            text_font = FONT, text_color = "#FF6666",
+            w = lvgl.PCT(100), h = lvgl.SIZE_CONTENT,
+        }
+    end
+end
+
+create_settings_screen = function(note)
     show_screen(function(c)
         heading(c, "SETTINGS", ACCENT)
+
+        folder_rows(c, note)
+        c:Label{
+            text = "Its .img disks and its subfolders join\n"
+                 .. "the A: and C: lists, as well as those\n"
+                 .. "in S:/dos and the app folder",
+            text_font = FONT, text_color = "#666666",
+            w = lvgl.PCT(100), h = lvgl.SIZE_CONTENT,
+        }
 
         setting_row(c, "CPU class",
             function() return string.format("< %s >", CPU_NAMES[sel_cpu]) end,
@@ -1422,21 +1551,15 @@ return function()
             scan_dir_for_imgs("S:/dos")
             scan_dir_for_folders("S:/dos")
         end
+        load_folder()
+        if extra_dir then
+            scan_dir_for_imgs(extra_dir)
+            scan_dir_for_folders(extra_dir)
+        end
         return false
     end
 
-    table.sort(found_imgs, function(a, b)
-        return a.name:lower() < b.name:lower()
-    end)
-    table.sort(found_folders, function(a, b)
-        return a.name:lower() < b.name:lower()
-    end)
-    for _, r in ipairs(found_imgs) do
-        hda_choices[#hda_choices + 1] = { kind = "img", name = r.name, path = r.path }
-    end
-    for _, r in ipairs(found_folders) do
-        hda_choices[#hda_choices + 1] = { kind = "folder", name = r.name, path = r.path }
-    end
+    build_choices()
     load_config()
     -- Restore selections by name
     if sel_fda_name then
