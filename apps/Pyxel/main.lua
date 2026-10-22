@@ -33,9 +33,13 @@ local function exists(path)
     return false
 end
 
+-- Firmware with _elf_arch_path maps an ELF name to this CPU's build
+-- (pyxel.app.rv32.elf on the T-Display P4): that file is checked for; the
+-- launch still names pyxel.app.elf (the loader maps it again).
 local function find_file(name)
+    local have = (_elf_arch_path and _elf_arch_path(name)) or name
     for _, dir in ipairs({ app_dir, sd_app_dir }) do
-        if exists(dir .. "/" .. name) then return dir end
+        if exists(dir .. "/" .. have) then return dir end
     end
     return nil
 end

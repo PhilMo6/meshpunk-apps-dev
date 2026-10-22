@@ -34,12 +34,15 @@ local function to_vfs_path(path)
     return path
 end
 
+-- Firmware with _elf_arch_path maps an ELF name to this CPU's build
+-- (nes.app.rv32.elf on the T-Display P4): that file is checked for, and the
+-- name given is returned (the loader maps it again at launch).
 local function find_file(name)
+    local have = (_elf_arch_path and _elf_arch_path(name)) or name
     local search = { app_dir, sd_app_dir }
     for _, dir in ipairs(search) do
-        local path = dir .. "/" .. name
-        local f = io.open(path, "r")
-        if f then f:close(); return path end
+        local f = io.open(dir .. "/" .. have, "r")
+        if f then f:close(); return dir .. "/" .. name end
     end
     return nil
 end

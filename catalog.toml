@@ -31,7 +31,7 @@
 
 [meta]
 version = 1
-updated = "2026-10-10"
+updated = "2026-10-22"
 
 # ── Download-only apps (not shipped in firmware) ─────────────────────────────
 
@@ -39,97 +39,105 @@ updated = "2026-10-10"
 id = "Doom"
 name = "Doom"
 author = "PhilMo6"
-version = "1.3.1"
+version = "1.3.2"
 type = "elf"
 description = "The classic FPS, running native - multiplayer over USB cable or WiFi"
 category = "Games"
 min_fw = 15
 drivers = ["espserial"]
 files = ["readme.lua", "main.lua", "doom.app.elf"]
+files_rv32 = ["doom.app.rv32.elf"]
 
 [[apps]]
 id = "Nes"
 name = "Nes"
 author = "PhilMo6"
-version = "1.3.1"
+version = "1.3.2"
 type = "elf"
 description = "NES emulator (Nofrendo)"
 category = "Games"
 min_fw = 15
 files = ["readme.lua", "main.lua", "nes.app.elf"]
+files_rv32 = ["nes.app.rv32.elf"]
 
 [[apps]]
 id = "Snes"
 name = "Snes"
 author = "PhilMo6"
-version = "1.4.1"
+version = "1.4.2"
 type = "elf"
 description = "SNES emulator (Snes9x)"
 category = "Games"
 min_fw = 15
 files = ["readme.lua", "main.lua", "snes.app.elf"]
+files_rv32 = ["snes.app.rv32.elf"]
 
 [[apps]]
 id = "GameBoy"
 name = "GameBoy"
 author = "PhilMo6"
-version = "1.4.2"
+version = "1.4.3"
 type = "elf"
 description = "Game Boy emulator (gnuboy) with USB link cable"
 category = "Games"
 min_fw = 15
 drivers = ["espserial"]
 files = ["readme.lua", "main.lua", "gameboy.app.elf"]
+files_rv32 = ["gameboy.app.rv32.elf"]
 
 [[apps]]
 id = "NeoGeoPocket"
 name = "NeoGeoPocket"
 author = "PhilMo6"
-version = "1.2.1"
+version = "1.2.2"
 type = "elf"
 description = "Neo Geo Pocket emulator (RACE)"
 category = "Games"
 min_fw = 15
 files = ["readme.lua", "main.lua", "ngpc.app.elf"]
+files_rv32 = ["ngpc.app.rv32.elf"]
 
 [[apps]]
 id = "Sega8"
 name = "Sega8"
 author = "PhilMo6"
-version = "1.1.1"
+version = "1.1.2"
 type = "elf"
 description = "Game Gear, Master System and SG-1000 emulator (SMS Plus)"
 category = "Games"
 min_fw = 15
 files = ["readme.lua", "main.lua", "sega8.app.elf"]
+files_rv32 = ["sega8.app.rv32.elf"]
 
 [[apps]]
 id = "Genesis"
 name = "Genesis"
 author = "PhilMo6"
-version = "1.1.1"
+version = "1.1.2"
 type = "elf"
 description = "Sega Genesis / Mega Drive emulator (Gwenesis)"
 category = "Games"
 min_fw = 15
 files = ["readme.lua", "main.lua", "genesis.app.elf"]
+files_rv32 = ["genesis.app.rv32.elf"]
 
 [[apps]]
 id = "PICO-8"
 name = "PICO-8"
 author = "PhilMo6"
-version = "1.3.0"
+version = "1.3.1"
 type = "elf"
 description = "PICO-8 fantasy console player with a BBS cart browser"
 category = "Games"
 min_fw = 15
 files = ["readme.lua", "bbs.lua", "bbs_view.lua", "main.lua", "pico8.app.elf"]
+files_rv32 = ["pico8.app.rv32.elf"]
 
 [[apps]]
 id = "Dos"
 name = "Dos"
 author = "PhilMo6"
-version = "1.2.1"
+version = "1.2.2"
 type = "elf"
 description = "386 DOS emulator: VGA, Adlib, Sound Blaster, PS/2 mouse"
 category = "Games"
@@ -141,12 +149,13 @@ files = [
   "bios.bin",
   "vgabios.bin",
 ]
+files_rv32 = ["dos.app.rv32.elf"]
 
 [[apps]]
 id = "Pyxel"
 name = "Pyxel"
 author = "PhilMo6"
-version = "1.0.1"
+version = "1.0.2"
 type = "elf"
 description = "Pyxel retro game player with 7 example games; plays .pyxapp files and Python game folders"
 category = "Games"
@@ -178,6 +187,7 @@ files = [
   "games/space_rescue.pyxapp",
   "games/vortexion.pyxapp",
 ]
+files_rv32 = ["pyxel.app.rv32.elf"]
 
 [[apps]]
 id = "Music"
@@ -241,7 +251,7 @@ files = ["readme.lua", "main.lua"]
 id = "Jet_3D"
 name = "Jet 3D"
 author = "PhilMo6"
-version = "1.2.1"
+version = "1.2.2"
 type = "elf"
 description = "A software 3D engine with lua powered games"
 category = "Games"
@@ -257,6 +267,7 @@ files = [
   "games/skyloopers/music/race3.adp",
   "games/skyloopers/music/finish.adp",
 ]
+files_rv32 = ["jet3d.app.rv32.elf"]
 
 [[apps]]
 id = "Web"
@@ -298,7 +309,7 @@ min_fw = 14
 id = "App_Library"
 name = "App Library"
 author = "PhilMo6"
-version = "1.3.0"
+version = "1.3.1"
 type = "lua"
 locked = true
 description = "This app — browse and install apps, themes and LoRa protocols"
@@ -720,6 +731,7 @@ type = "elf"
 description = "MeshCore LoRa protocol + phone-app companion BLE protocol"
 min_fw = 12
 files = ["meshcore.loraproto.elf", "meshcore_companion.bleproto.elf"]
+files_rv32 = ["meshcore.loraproto.rv32.elf", "meshcore_companion.bleproto.rv32.elf"]
 apps = ["meshcore_messenger", "meshcore_radio", "meshcore_notifications", "meshcore_identity"]
 
 [[protocols]]
@@ -731,6 +743,7 @@ type = "elf"
 description = "Meshtastic-compatible LoRa protocol (leaf role)"
 min_fw = 12
 files = ["mtlite.loraproto.elf"]
+files_rv32 = ["mtlite.loraproto.rv32.elf"]
 apps = ["mtlite_messenger", "mtlite_radio", "mtlite_notifications", "mtlite_identity"]
 
 # ── Themes ───────────────────────────────────────────────────────────────────
