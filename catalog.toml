@@ -31,7 +31,7 @@
 
 [meta]
 version = 1
-updated = "2026-10-22"
+updated = "2026-11-14"
 
 # ── Download-only apps (not shipped in firmware) ─────────────────────────────
 
@@ -137,11 +137,11 @@ files_rv32 = ["pico8.app.rv32.elf"]
 id = "Dos"
 name = "Dos"
 author = "PhilMo6"
-version = "1.2.2"
+version = "1.3.0"
 type = "elf"
 description = "386 DOS emulator: VGA, Adlib, Sound Blaster, PS/2 mouse"
 category = "Games"
-min_fw = 15
+min_fw = 16
 files = [
   "readme.lua",
   "main.lua",
@@ -155,11 +155,11 @@ files_rv32 = ["dos.app.rv32.elf"]
 id = "Pyxel"
 name = "Pyxel"
 author = "PhilMo6"
-version = "1.0.2"
+version = "1.1.0"
 type = "elf"
 description = "Pyxel retro game player with 7 example games; plays .pyxapp files and Python game folders"
 category = "Games"
-min_fw = 15
+min_fw = 16
 files = [
   "readme.lua",
   "main.lua",
@@ -295,13 +295,27 @@ min_fw = 15
 id = "meshcore_simple_mode"
 name = "Simple Mode"
 author = "PhilMo6"
-version = "1.0.0"
+version = "1.0.1"
 type = "lua"
 description = "Swap the launcher for a plain messenger: picked contacts, channels and apps, nothing else"
 category = "Meshcore"
 requires_protocol = "meshcore"
 files = ["readme.lua", "main.lua", "simple_launcher.lua", "simple_topbar.lua"]
-min_fw = 14
+min_fw = 15
+
+[[apps]]
+id = "Voice_to_Text"
+name = "Voice to Text"
+author = "PhilMo6"
+version = "1.0.0"
+type = "lua"
+description = "Speech to text: hold the mic key or Talk, speak; the text goes into its box or any app's text field"
+category = "Tools"
+min_fw = 16
+requires = ["mic"]
+files = ["readme.lua", "main.lua", "model.bin"]
+files_xtensa = ["stt.audioplug.elf"]
+files_rv32 = ["stt.audioplug.rv32.elf"]
 
 # ── Preinstalled apps (tracked for OTA updates) ──────────────────────────────
 
@@ -309,7 +323,7 @@ min_fw = 14
 id = "App_Library"
 name = "App Library"
 author = "PhilMo6"
-version = "1.3.1"
+version = "1.4.0"
 type = "lua"
 locked = true
 description = "This app — browse and install apps, themes and LoRa protocols"
@@ -330,12 +344,12 @@ min_fw = 15
 id = "meshcore_messenger"
 name = "Messenger"
 author = "PhilMo6"
-version = "1.1.4"
+version = "1.1.5"
 type = "lua"
 description = "MeshCore LoRa messenger"
 category = "Meshcore"
 requires_protocol ="meshcore"
-min_fw = 14
+min_fw = 16
 was = "Messenger"
 files = ["readme.lua", "main.lua"]
 
@@ -449,6 +463,17 @@ min_fw = 8
 files = ["readme.lua", "main.lua"]
 
 [[apps]]
+id = "Recorder"
+name = "Recorder"
+author = "PhilMo6"
+version = "1.0.0"
+type = "lua"
+description = "Microphone recordings as WAV files, with playback"
+category = "Tools"
+min_fw = 16
+files = ["readme.lua", "main.lua"]
+
+[[apps]]
 id = "Screenshot"
 name = "Screenshot"
 author = "PhilMo6"
@@ -460,25 +485,36 @@ min_fw = 11
 files = ["readme.lua", "main.lua"]
 
 [[apps]]
+id = "Sentry"
+name = "Sentry"
+author = "PhilMo6"
+version = "1.0.0"
+type = "lua"
+description = "Watches the device while it is left alone: noise, GPS movement, touch; alarm and a DM"
+category = "Tools"
+min_fw = 16
+files = ["readme.lua", "main.lua"]
+
+[[apps]]
 id = "USB_Host"
 name = "USB Host"
 author = "PhilMo6"
-version = "1.1.2"
+version = "1.2.0"
 type = "lua"
 description = "USB host tools and driver manager"
 category = "Tools"
-min_fw = 2
+min_fw = 15
 files = ["readme.lua", "main.lua"]
 
 [[apps]]
 id = "USB_Drive"
 name = "USB Drive"
 author = "PhilMo6"
-version = "1.0.1"
+version = "1.1.0"
 type = "lua"
 description = "Share the SD card with a PC as a USB thumb drive"
 category = "Tools"
-min_fw = 3
+min_fw = 15
 files = ["readme.lua", "main.lua"]
 
 [[apps]]
@@ -497,7 +533,7 @@ min_fw = 7
 id = "Firmware"
 name = "Firmware"
 author = "PhilMo6"
-version = "1.1.0"
+version = "1.1.1"
 type = "lua"
 description = "Firmware updates over WiFi or from the SD card"
 locked = true
@@ -509,13 +545,13 @@ min_fw = 15
 id = "Power"
 name = "Power"
 author = "PhilMo6"
-version = "1.0.1"
+version = "1.0.2"
 type = "lua"
 description = "Standby, power off, restart and auto-standby"
 locked = true
 category = "Settings"
 files = ["main.lua"]
-min_fw = 10
+min_fw = 15
 
 [[apps]]
 id = "Emoji"
@@ -546,12 +582,12 @@ files = ["main.lua"]
 id = "Meshpunk"
 name = "Meshpunk"
 author = "PhilMo6"
-version = "1.1.0"
+version = "1.1.1"
 type = "lua"
 description = "Meshpunk settings"
 locked = true
 category = "Settings"
-min_fw = 12
+min_fw = 15
 files = ["main.lua"]
 
 [[apps]]
@@ -584,34 +620,37 @@ files = ["main.lua"]
 id = "Sound"
 name = "Sound"
 author = "PhilMo6"
-version = "1.0.2"
+version = "1.0.3"
 type = "lua"
 description = "Sound settings"
 locked = true
 category = "Settings"
 files = ["main.lua"]
+min_fw = 15
 
 [[apps]]
 id = "Fonts"
 name = "Fonts"
 author = "PhilMo6"
-version = "1.0.0"
+version = "1.0.1"
 type = "lua"
 description = "Default UI and text fonts"
 locked = true
 category = "Settings"
 files = ["main.lua"]
+min_fw = 15
 
 [[apps]]
 id = "Theme"
 name = "Theme"
 author = "PhilMo6"
-version = "1.0.1"
+version = "1.0.2"
 type = "lua"
-description = "UI theme picker and theme downloads"
+description = "UI theme picker"
 locked = true
 category = "Settings"
 files = ["main.lua"]
+min_fw = 15
 
 [[apps]]
 id = "Alerts"
@@ -629,36 +668,36 @@ files = ["main.lua"]
 id = "Wifi"
 name = "Wifi"
 author = "PhilMo6"
-version = "1.0.0"
+version = "1.1.0"
 type = "lua"
 description = "WiFi networks and connectivity"
 locked = true
 category = "Settings"
-min_fw = 12
+min_fw = 16
 files = ["readme.lua", "main.lua"]
 
 [[apps]]
 id = "Ble"
 name = "Ble"
 author = "PhilMo6"
-version = "1.0.0"
+version = "1.0.1"
 type = "lua"
 description = "Bluetooth protocol slot and app link"
 locked = true
 category = "Settings"
-min_fw = 12
+min_fw = 15
 files = ["readme.lua", "main.lua"]
 
 [[apps]]
 id = "Lora"
 name = "Lora"
 author = "PhilMo6"
-version = "1.0.0"
+version = "1.1.0"
 type = "lua"
 description = "LoRa protocol selection (boot protocol picker)"
 locked = true
 category = "Settings"
-min_fw = 12
+min_fw = 16
 files = ["readme.lua", "main.lua"]
 
 [[apps]]
@@ -726,7 +765,7 @@ files = ["readme.lua", "main.lua"]
 id = "meshcore"
 name = "MeshCore"
 author = "PhilMo6"
-version = "1.0.2"
+version = "1.0.3"
 type = "elf"
 description = "MeshCore LoRa protocol + phone-app companion BLE protocol"
 min_fw = 12

@@ -103,6 +103,22 @@ local pad = padlayout and padlayout.new{
     } },
 } or nil
 
+-- Mouse pad layout, armed in the firmware's MOUSE PAD touch mode for a game
+-- that uses the mouse: these pads work, and a touch anywhere else puts the
+-- pointer there and holds the left button (MOUSE mode does that on the whole
+-- screen). Return and Space are the keys mouse games most often ask for.
+local mpad = padlayout and padlayout.new{
+    app = "Pyxel_mouse",
+    presets = { {
+        name = "Mouse",
+        zones = {
+            { id="quit",  out=keybind.QUIT, label="QUIT", x=0,   y=0, w=52, h=30 },
+            { id="enter", out=0x0D,         label="ENT",  x=120, y=0, w=58, h=30 },
+            { id="space", out=0x20,         label="SPC",  x=254, y=0, w=66, h=30 },
+        },
+    } },
+} or nil
+
 -- ============================================================
 -- Match game. The launcher reads the game's Python source for the Pyxel
 -- names it uses (KEY_* and GAMEPAD1_BUTTON_*). A control keeps its gamepad
@@ -518,20 +534,21 @@ local function start_game(g)
             local ok_tz, tz = pcall(_rtc_tz_offset_minutes)
             args[#args + 1] = "-clock"
             args[#args + 1] = string.format("%d,%d", utils.now(), ok_tz and tz or 0)
+            -- The gamepad layout, then the mouse pad layout for the MOUSE PAD
+            -- touch mode.
             if _elf_touch_layout and pad then
                 local tl = pad:zones()
-                if tl then
-                    if outs then
-                        for _, z in ipairs(tl) do
-                            local id = PAD_ACTION[z.out]
-                            if id and outs[id] then
-                                z.out = outs[id]
-                                z.label = labels[id] or z.label
-                            end
+                if tl and outs then
+                    for _, z in ipairs(tl) do
+                        local id = PAD_ACTION[z.out]
+                        if id and outs[id] then
+                            z.out = outs[id]
+                            z.label = labels[id] or z.label
                         end
                     end
-                    _elf_touch_layout(tl)
                 end
+                local mtl = mpad and mpad:zones()
+                if tl or mtl then _elf_touch_layout(tl, mtl) end
             end
             _launch_elf(table.unpack(args))
         end
@@ -561,7 +578,12 @@ local function create_help_screen()
                 .. "control at a key that game uses.\n\n"
                 .. "In games that show a mouse pointer, the\n"
                 .. "trackball moves it and its click is the\n"
-                .. "left mouse button.\n\n"
+                .. "left mouse button. On a touch screen,\n"
+                .. "switch to the MOUSE or MOUSE PAD touch\n"
+                .. "mode: a touch then puts the pointer\n"
+                .. "under your finger and holds the left\n"
+                .. "button. MOUSE PAD keeps the Mouse pad\n"
+                .. "buttons on screen.\n\n"
                 .. "Tap the y key (Quit in Controls) to leave\n"
                 .. "a game, or hold ALT + Backspace for 1.5 s.\n\n"
                 .. "Settings turns game sound and Match\n"
@@ -763,6 +785,17 @@ create_main_screen = function()
             touch:Label{ text = "Touch", align = lvgl.ALIGN.CENTER }
             touch:onClicked(function()
                 pad:open{
+                    show_screen = show_screen, font = FONT, accent = ACCENT,
+                    on_back = function() create_main_screen() end,
+                }
+            end)
+        end
+
+        if mpad then
+            local mtouch = c:Button{ w = lvgl.PCT(48), h = 34 }
+            mtouch:Label{ text = "Mouse pad", align = lvgl.ALIGN.CENTER }
+            mtouch:onClicked(function()
+                mpad:open{
                     show_screen = show_screen, font = FONT, accent = ACCENT,
                     on_back = function() create_main_screen() end,
                 }

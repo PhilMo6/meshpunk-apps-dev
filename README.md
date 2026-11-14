@@ -1,8 +1,38 @@
-# meshpunk-apps
+# meshpunk-apps-dev
 
-App repository for the [Meshpunk](https://github.com/PhilMo6/meshpunk) T-Deck firmware.
-The on-device **App Library** app reads `catalog.toml` from this repo over WiFi and
-downloads apps straight onto the device — no reflash, no SD card shuffling.
+The **Dev catalog** of the [Meshpunk](https://github.com/PhilMo6/meshpunk) firmware: apps in
+development, and versions that need a dev firmware's API level. Its stable twin is
+[meshpunk-apps](https://github.com/PhilMo6/meshpunk-apps), the published apps.
+The on-device **App Library** app reads `catalog.toml` from one of the two over WiFi and
+downloads apps straight onto the device — no reflash, no SD card shuffling. A dev
+firmware reads this one by default, a release the stable one; the button beside
+Refresh switches.
+
+## Dev and stable
+
+- Every app change lands here first. This catalog lists every app, the ones in the
+  stable catalog included, and its version of an entry is never lower than the
+  stable one: a fix made for stable is made here too.
+- An entry's version goes to the stable catalog once it is finished (tested on the
+  boards it supports) and its `min_fw` is no higher than the stable firmware's
+  API level. A firmware promotion (dev firmware to a stable release) raises that
+  level, and the entries it unblocks follow it.
+- `tools/promote.py` (Python 3.11) copies entries into a stable clone beside this
+  one (`../meshpunk-apps`; the stable firmware tree `../meshpunk` gives the API
+  level). It changes that clone only; commit and push it after reading the diff.
+
+```
+python tools/promote.py status                  # what differs, and what can go
+python tools/promote.py apps/Dos                # dry run: what promoting it changes
+python tools/promote.py apps/Dos --apply        # do it
+python tools/promote.py --all --apply           # every entry status lists as ready
+```
+
+  An entry is its folder (`apps/<id>/`, `themes/<id>/`, `drivers/<id>/`,
+  `protocols/<id>/`), the `module-src/<module>/` folder of each ELF it ships, and
+  its `catalog.toml` block. The script refuses an entry whose stable version is
+  newer, whose `min_fw` is above the stable API level, or that lists a file its
+  folder lacks.
 
 ## How it works
 

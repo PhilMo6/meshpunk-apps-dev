@@ -34,6 +34,13 @@ Arrows - W A S D
 Esc, Ctrl, Alt, Tab, Del, F1-F10 and right mouse button are all bindable in Controls but start unassigned, since a DOS game decides for itself what it wants.
 ]]
 
+if caps.touch then
+    body = body .. [[
+
+TOUCH MOUSE
+Two touch modes make the screen a mouse for DOS: MOUSE turns the whole screen into a touchpad, and MOUSE PAD keeps a few pads (Quit, Esc, Enter, left and right click) with the touchpad around them. Reach them with the same mode button that switches between the pad and the on-screen keyboard. Slide to move, tap to click, tap then touch again and slide to drag, and tap with two fingers to right-click. The trackball is a mouse in both modes too. The Mouse pad button edits that layout, and Touch speed in Settings sets how far the pointer moves. Like any DOS mouse, it needs a mouse driver (CTMOUSE) loaded.]]
+end
+
 if not caps.keyboard then
     body = body .. [[
 

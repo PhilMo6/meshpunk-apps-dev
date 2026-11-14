@@ -49,6 +49,14 @@ In games that show a mouse pointer, the trackball moves the pointer and its clic
 ]]
 end
 
+if caps.touch then
+    body = body .. [[
+
+TOUCH MOUSE
+In a game that uses the mouse, two more touch modes join the cycle that switches between the pad and the on-screen keyboard. In MOUSE, a touch anywhere puts the pointer under your finger and holds the left mouse button until you lift it. MOUSE PAD does the same around a few buttons of its own (Quit, Enter and Space), which the Mouse pad button lets you move and resize.
+]]
+end
+
 body = body .. [[
 
 SETTINGS

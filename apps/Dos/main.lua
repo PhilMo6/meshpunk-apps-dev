@@ -143,6 +143,7 @@ local PC = {
     TAB   = 0x99,
     UP    = 0x91, DOWN = 0x92, LEFT = 0x93, RIGHT = 0x94,
     RMOUSE = 0x95,
+    LMOUSE = 0x9A,   -- mouse pad only: the left button, held while touched
 }
 
 -- DOS needs keys the T-Deck doesn't have. Mostly unbound by default — binding a
@@ -241,6 +242,26 @@ local pad = padlayout and padlayout.new{
     },
 } or nil
 
+-- Mouse pad layout, armed in the firmware's MOUSE PAD touch mode: these pads
+-- work and the rest of the screen is the touchpad that drives DOS's PS/2
+-- mouse (in MOUSE mode the whole screen is). Its own config and editor, so
+-- the user's gamepad layout stays as it is.
+local mpad = padlayout and padlayout.new{
+    app = "Dos_mouse",
+    presets = {
+        {
+            name = "Mouse",
+            zones = {
+                { id="quit",   out=keybind.QUIT, label="QUIT",  x=0,   y=0,   w=52, h=30 },
+                { id="esc",    out=PC.ESC,       label="ESC",   x=56,  y=0,   w=54, h=30 },
+                { id="enter",  out=ASC.ENTER,    label="ENT",   x=114, y=0,   w=58, h=30 },
+                { id="lmouse", out=PC.LMOUSE,    label="L.CLK", x=0,   y=186, w=84, h=54 },
+                { id="rmouse", out=PC.RMOUSE,    label="R.CLK", x=236, y=186, w=84, h=54 },
+            },
+        },
+    },
+} or nil
+
 -- Built once the screen helpers below exist; save_config/load_config reach it
 -- as an upvalue.
 local kb
@@ -318,6 +339,11 @@ local mouse_speed = 0    -- 0 = arrow keys (default: most DOS games are
 -- held/released instead of following the physical press -- dragging without
 -- holding the ball pressed while rolling it.
 local click_latch = false
+-- Touch speed: PS/2 counts per screen pixel of finger travel in the
+-- firmware's touch mouse modes, 1-4. Only offered on touch hardware.
+local touch_speed = 2
+local ok_icaps, icaps = pcall(_input_caps)
+local HAS_TOUCH = ok_icaps and type(icaps) == "table" and icaps.touch == true
 -- No boot-drive selector: SeaBIOS owns the boot order.
 
 -- Game folder picked in Settings (saved as folder= in the config), scanned
@@ -402,6 +428,7 @@ local function save_config()
     f:write(string.format("pitcap=%d\n", pit_cap and 1 or 0))
     f:write(string.format("mousespd=%d\n", mouse_speed))
     f:write(string.format("mlatch=%d\n", click_latch and 1 or 0))
+    f:write(string.format("tspeed=%d\n", touch_speed))
     if sel_fda > 1 then f:write("fda=" .. found_imgs[sel_fda - 1].name .. "\n") end
     if sel_hda > 1 then
         local c = hda_choices[sel_hda - 1]
@@ -446,6 +473,8 @@ local function load_config()
         if v then pit_cap = (v == "1") end
         v = line:match("^mlatch=([01])$")
         if v then click_latch = (v == "1") end
+        v = line:match("^tspeed=([1-4])$")
+        if v then touch_speed = tonumber(v) end
         v = line:match("^mousespd=(%d+)$")
         if v then
             v = tonumber(v)
@@ -639,8 +668,30 @@ loaded inside DOS (CTMOUSE is on the
 FreeDOS disks we provide) AND a game that
 supports a mouse.
 
+In the touch MOUSE and MOUSE PAD modes the
+ball is always the mouse: at the speed set
+here, or x2 when this says Arrow keys.
+
 Note this resets to Arrow keys whenever
 the device filesystem is reflashed.]] },
+
+tspeed = { "TOUCH SPEED", [[
+How far the DOS mouse moves for each
+pixel your finger slides, x1-x4.
+
+Touch is the mouse only in the MOUSE and
+MOUSE PAD touch modes. Switch to them with
+the board's mode button, or Shift + Alt on
+a keyboard. MOUSE uses the whole screen as
+a touchpad; MOUSE PAD keeps the pads from
+the Mouse pad editor.
+
+Slide - move. Tap - left click. Tap, then
+touch again and slide - drag. Two-finger
+tap - right click.
+
+Like the trackball mouse, this needs a
+mouse driver (CTMOUSE) loaded in DOS.]] },
 
 mlatch = { "CLICK LATCH", [[
 OFF - the mouse button follows the ball
@@ -914,9 +965,18 @@ create_main_screen = function()
                         args[#args + 1] = "-trkball"
                         args[#args + 1] = kb:trkball_string()
                     end
+                    -- Omitted at the module's default (x2), like the options
+                    -- above: the firmware keeps only the first 16 arguments.
+                    if HAS_TOUCH and touch_speed ~= 2 then
+                        args[#args + 1] = "-tspeed"
+                        args[#args + 1] = tostring(touch_speed)
+                    end
+                    -- The gamepad layout, then the mouse pad layout for the
+                    -- MOUSE PAD touch mode.
                     if _elf_touch_layout and pad then
                         local tl = pad:zones()
-                        if tl then _elf_touch_layout(tl) end
+                        local mtl = mpad and mpad:zones()
+                        if tl or mtl then _elf_touch_layout(tl, mtl) end
                     end
                     _launch_elf(table.unpack(args))
                 end
@@ -933,6 +993,17 @@ create_main_screen = function()
             touchBtn:Label{ text = "Touch", align = lvgl.ALIGN.CENTER }
             touchBtn:onClicked(function()
                 pad:open{
+                    show_screen = show_screen, font = FONT, accent = ACCENT,
+                    on_back = function() create_main_screen() end,
+                }
+            end)
+        end
+
+        if mpad then
+            local mpadBtn = c:Button{ w = lvgl.PCT(48), h = 30 }
+            mpadBtn:Label{ text = "Mouse pad", align = lvgl.ALIGN.CENTER }
+            mpadBtn:onClicked(function()
+                mpad:open{
                     show_screen = show_screen, font = FONT, accent = ACCENT,
                     on_back = function() create_main_screen() end,
                 }
@@ -1183,6 +1254,17 @@ create_settings_screen = function(note)
             function() click_latch = not click_latch end,
             "mlatch"
         )
+
+        if HAS_TOUCH then
+            setting_row(c, "Touch speed",
+                function() return string.format("< x%d >", touch_speed) end,
+                function()
+                    touch_speed = touch_speed + 1
+                    if touch_speed > 4 then touch_speed = 1 end
+                end,
+                "tspeed"
+            )
+        end
 
         local dlBtn = c:Button{ w = lvgl.PCT(100), h = 28 }
         dlBtn:Label{ text = "Download DOS disks", text_font = FONT,
@@ -1518,6 +1600,9 @@ create_confirm_screen = function(hda_choice, on_yes)
                          or string.format("Mouse x%d", mouse_speed))
         if mouse_speed > 0 then
             row("Click latch", click_latch and "ON" or "OFF")
+        end
+        if HAS_TOUCH then
+            row("Touch speed", "x" .. touch_speed)
         end
         local nbind = 0
         for _, a in ipairs(ACTIONS) do
