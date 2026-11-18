@@ -31,7 +31,7 @@
 
 [meta]
 version = 1
-updated = "2026-11-16"
+updated = "2026-11-18"
 
 # ── Download-only apps (not shipped in firmware) ─────────────────────────────
 
@@ -307,7 +307,7 @@ min_fw = 15
 id = "Voice_to_Text"
 name = "Voice to Text"
 author = "PhilMo6"
-version = "1.0.0"
+version = "1.0.1"
 type = "lua"
 description = "Speech to text: hold the mic key or Talk, speak; the text goes into its box or any app's text field"
 category = "Tools"
@@ -333,7 +333,7 @@ files = ["readme.lua", "main.lua"]
 id = "Map"
 name = "Map"
 author = "PhilMo6"
-version = "1.1.1"
+version = "1.1.2"
 type = "lua"
 locked = true
 description = "Offline tile map with mesh overlays"
@@ -344,7 +344,7 @@ min_fw = 15
 id = "meshcore_messenger"
 name = "Messenger"
 author = "PhilMo6"
-version = "1.1.5"
+version = "1.1.6"
 type = "lua"
 description = "MeshCore LoRa messenger"
 category = "Meshcore"
